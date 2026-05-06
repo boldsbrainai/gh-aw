@@ -141,6 +141,34 @@ function getExampleValue(prop, propName = "") {
 }
 
 /**
+ * Returns true if a schema variant is a constraint-only annotation (e.g. a
+ * mutual-exclusion rule expressed with required/not) rather than a real input
+ * shape. We check the unresolved variant so that $ref entries—which always
+ * represent real input shapes—are never classified as constraint-only even when
+ * their type/description lives inside the referenced definition.
+ * @param {object} variant - Unresolved schema variant object
+ */
+function isConstraintOnlyVariant(variant) {
+  return !variant.type && !variant.description && !variant.$ref;
+}
+
+/**
+ * Returns a human-readable label for a resolved schema variant, used as the
+ * "Format N: <label>" suffix.
+ * Priority: variant description → variant type → "Configuration object" for
+ * complex nested schemas (e.g. $ref definitions that contain their own oneOf
+ * union) → null if nothing is available.
+ * @param {object} resolvedVariant - Variant object after $ref resolution
+ * @returns {string|null}
+ */
+function getVariantLabel(resolvedVariant) {
+  if (resolvedVariant.description) return resolvedVariant.description;
+  if (resolvedVariant.type) return resolvedVariant.type;
+  if (resolvedVariant.oneOf || resolvedVariant.anyOf) return "Configuration object";
+  return null;
+}
+
+/**
  * Generate YAML for a property with variants (oneOf/anyOf)
  */
 function generateVariants(prop, propName, indent = 0, required = []) {
@@ -162,14 +190,31 @@ function generateVariants(prop, propName, indent = 0, required = []) {
 
   // Handle oneOf/anyOf
   const variants = prop.oneOf || prop.anyOf;
-  const variantType = prop.oneOf ? "oneOf" : "anyOf";
 
-  if (variants && variants.length > 1) {
-    lines.push(formatComment(`This field supports multiple formats (${variantType}):`, indent));
+  // Constraint-only variants (e.g. mutual-exclusion rules using required/not/anyOf
+  // without a type, description, or $ref) are schema validation annotations, not
+  // alternate input shapes. Check the unresolved variants so that $ref entries
+  // are not mistakenly classified as constraints (their type/description lives
+  // inside the referenced definition).
+  // When every variant is constraint-only, render the property normally using its
+  // top-level type/properties instead.
+  const allConstraints = variants && variants.length > 0 && variants.every(isConstraintOnlyVariant);
 
-    variants.forEach((variant, index) => {
+  // Resolve $refs so that labels (Format N: <desc>) show the referenced description.
+  const resolvedVariants = variants ? variants.map(resolvePropertyRef) : variants;
+
+  if (resolvedVariants && resolvedVariants.length > 1 && !allConstraints) {
+    lines.push(formatComment(`Accepted formats:`, indent));
+
+    resolvedVariants.forEach((variant, index) => {
+      // Build a human-readable label for this format entry.
+      const variantLabel = getVariantLabel(variant);
+
+      // Skip variants that have no label and no renderable content.
+      if (!variantLabel) return;
+
       lines.push("");
-      lines.push(formatComment(`Option ${index + 1}: ${variant.description || variant.type}`, indent));
+      lines.push(formatComment(`Format ${index + 1}: ${variantLabel}`, indent));
 
       if (variant.type === "string") {
         const example = getExampleValue(variant, propName);
@@ -197,12 +242,16 @@ function generateVariants(prop, propName, indent = 0, required = []) {
         lines.push(`${indentStr}${propName}: ${example}`);
       }
     });
-  } else if (variants && variants.length === 1) {
+  } else if (resolvedVariants && resolvedVariants.length === 1 && !allConstraints) {
     // Single variant, just render it normally
-    lines.push(...generateProperty(propName, variants[0], indent, isRequired));
+    lines.push(...generateProperty(propName, resolvedVariants[0], indent, isRequired));
   } else {
-    // No variants, render the property directly
-    lines.push(...generateProperty(propName, prop, indent, isRequired));
+    // No variants, or all variants are constraint-only (validation annotations):
+    // render the property directly using its top-level type/properties.
+    // Strip description from the prop since generateVariants already emitted
+    // the description comment above. Pass isRequired=true to also suppress the
+    // redundant "(optional)" comment that was already emitted.
+    lines.push(...generateProperty(propName, { ...prop, description: undefined }, indent, true));
   }
 
   return lines.join("\n");
