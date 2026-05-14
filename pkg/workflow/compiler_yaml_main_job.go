@@ -541,6 +541,7 @@ func (c *Compiler) generateAgentRunSteps(yaml *strings.Builder, data *WorkflowDa
 	// This ensures the gateway process is properly cleaned up
 	// The MCP gateway is always enabled, even when agent sandbox is disabled
 	c.generateStopMCPGateway(yaml, data)
+	c.generateWazeroCacheCleanupStep(yaml)
 
 	// Add secret redaction step BEFORE any artifact uploads
 	// This ensures all artifacts are scanned for secrets before being uploaded
@@ -573,8 +574,10 @@ func (c *Compiler) collectArtifactPaths(data *WorkflowData, engine CodingAgentEn
 	// separate agent_outputs artifact.
 	paths = append(paths, getEngineArtifactPaths(engine)...)
 
-	// Collect MCP logs path if any MCP tools were used
+	// Collect MCP logs. Unreadable wazero-cache files are deleted before artifact handling,
+	// and also excluded from upload as a safety net if cleanup could not remove them.
 	paths = append(paths, "/tmp/gh-aw/mcp-logs/")
+	paths = append(paths, "!/tmp/gh-aw/mcp-logs/wazero-cache/**")
 
 	// Collect DIFC proxy logs (proxy-tls certs + container stderr) when proxy was injected
 	paths = append(paths, difcProxyLogPaths(data)...)
