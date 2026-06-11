@@ -24,6 +24,7 @@ O servidor MCP do GitHub fornece aos agentes de IA acesso programático à API d
 - Suporta modo somente leitura via variável de ambiente `GITHUB_READ_ONLY`
 
 ### Modo Remoto (Hospedado)
+
 - Conecta-se ao servidor MCP do GitHub hospedado em `https://api.githubcopilot.com/mcp/`
 - Usa autenticação por token Bearer nos cabeçalhos HTTP
 - Suporta modo somente leitura via cabeçalho `X-MCP-Readonly`
@@ -83,16 +84,19 @@ O padrão `allowed:` para listar ferramentas individuais do GitHub **não é rec
 
 :::tip[Melhor Prática]
 **Use sempre `toolsets:` para ferramentas do GitHub.** Toolsets fornecem:
+
 - **Estabilidade**: Nomes de ferramentas podem mudar entre versões do servidor MCP, mas toolsets permanecem estáveis
 - **Melhor organização**: Agrupamentos claros de funcionalidade relacionada
 - **Funcionalidade completa**: Obtenha todas as ferramentas relacionadas automaticamente
 - **Menos verbosidade**: Configuração mais limpa
 - **À prova de futuro**: Novas ferramentas são incluídas automaticamente à medida que são adicionadas
+
 :::
 
 ### Toolsets Padrão Recomendados
 
 Os seguintes toolsets são habilitados por padrão quando `toolsets:` não é especificado:
+
 - `context` - Contexto de usuário e ambiente (altamente recomendado)
 - `repos` - Gerenciamento de repositório
 - `issues` - Gerenciamento de issue
@@ -129,10 +133,12 @@ Os seguintes toolsets são habilitados por padrão quando `toolsets:` não é es
 Esta seção mapeia ferramentas individuais para seus respectivos toolsets para ajudar na migração de `allowed:` para `toolsets:`.
 
 ### Toolset de Contexto
+
 - `get_teams` - Lista times aos quais o usuário pertence
 - `get_team_members` - Lista membros de um time específico
 
 ### Toolset Repos
+
 - `get_repository` - Obtém informações do repositório
 - `get_file_contents` - Lê conteúdo de arquivo do repositório
 - `search_code` - Pesquisa código entre repositórios
@@ -142,6 +148,7 @@ Esta seção mapeia ferramentas individuais para seus respectivos toolsets para 
 - `list_releases` - Lista todas as versões
 
 ### Toolset Issues
+
 - `issue_read` - Lê detalhes da issue
 - `list_issues` - Lista issues em um repositório
 - `create_issue` - Cria uma nova issue
@@ -151,6 +158,7 @@ Esta seção mapeia ferramentas individuais para seus respectivos toolsets para 
 - `create_issue_comment` - Adiciona um comentário a uma issue
 
 ### Toolset Pull Requests
+
 - `pull_request_read` - Lê detalhes do pull request
 - `list_pull_requests` - Lista pull requests em um repositório
 - `get_pull_request` - Obtém detalhes de um pull request específico
@@ -158,39 +166,47 @@ Esta seção mapeia ferramentas individuais para seus respectivos toolsets para 
 - `search_pull_requests` - Pesquisa pull requests entre repositórios
 
 ### Toolset Actions
+
 - `list_workflows` - Lista fluxos de trabalho do GitHub Actions
 - `list_workflow_runs` - Lista execuções de fluxo de trabalho
 - `get_workflow_run` - Obtém detalhes de uma execução de fluxo de trabalho específica
 - `download_workflow_run_artifact` - Baixa artefatos de execução de fluxo de trabalho
 
 ### Toolset Code Security
+
 - `list_code_scanning_alerts` - Lista alertas de verificação de código
 - `get_code_scanning_alert` - Obtém detalhes de um alerta específico
 - `create_code_scanning_alert` - Cria um alerta de verificação de código
 
 ### Toolset Discussions
+
 - `list_discussions` - Lista discussões em um repositório
 - `create_discussion` - Cria uma nova discussão
 
 ### Toolset Labels
+
 - `get_label` - Obtém detalhes da etiqueta
 - `list_labels` - Lista etiquetas em um repositório
 - `create_label` - Cria uma nova etiqueta
 
 ### Toolset Users
+
 - `get_me` - Obtém informações do usuário autenticado atual
 - `get_user` - Obtém informações de perfil de usuário
 - `list_users` - Lista usuários
 
 ### Toolset Notifications
+
 - `list_notifications` - Lista notificações do usuário
 - `mark_notifications_read` - Marca notificações como lidas
 
 ### Toolset Organizations
+
 - `get_organization` - Obtém detalhes da organização
 - `list_organizations` - Lista organizações
 
 ### Toolset Gists
+
 - `create_gist` - Cria um novo gist
 - `list_gists` - Lista os gists do usuário
 
@@ -201,10 +217,12 @@ Esta seção mapeia ferramentas individuais para seus respectivos toolsets para 
 O modo remoto usa autenticação por token Bearer:
 
 **Cabeçalhos**:
+
 - `Authorization: Bearer <token>` - Obrigatório para autenticação
 - `X-MCP-Readonly: true` - Opcional, habilita modo somente leitura
 
 **Fonte do Token**:
+
 - Padrão: `${{ secrets.GH_AW_GITHUB_TOKEN }}` ou `${{ secrets.GITHUB_TOKEN }}`
 - Personalizado: Configure via campo `github-token`
 
@@ -213,6 +231,7 @@ O modo remoto usa autenticação por token Bearer:
 O modo local usa variáveis de ambiente:
 
 **Variáveis de Ambiente**:
+
 - `GITHUB_PERSONAL_ACCESS_TOKEN` - Obrigatório para autenticação
 - `GITHUB_READ_ONLY=1` - Opcional, habilita modo somente leitura
 - `GITHUB_TOOLSETS=<lista-separada-por-vírgulas>` - Opcional, especifica toolsets habilitados
@@ -239,11 +258,13 @@ Garanta que seu token do GitHub tenha permissões apropriadas para os toolsets q
 ### Modo Remoto vs. Local
 
 **Use Modo Remoto quando**:
+
 - Quiser uma inicialização mais rápida (sem contêiner Docker para iniciar)
 - Estiver rodando em um ambiente do GitHub Actions com acesso à internet
 - Quiser usar a versão mais recente sem especificar tags de imagem Docker
 
 **Use Modo Local quando**:
+
 - Precisar de uma versão específica do servidor MCP
 - Quiser usar argumentos personalizados
 - Estiver rodando em um ambiente sem acesso à internet
@@ -306,6 +327,7 @@ Use esta tabela para identificar qual toolset contém as ferramentas que você p
 
 :::note[Quando Usar Allowed]
 O padrão `allowed:` é apropriado para:
+
 - Servidores MCP personalizados (não GitHub)
 - Migração gradual de fluxos de trabalho existentes
 - Restrição de granularidade fina de ferramentas específicas dentro de um toolset
@@ -375,14 +397,17 @@ Nem todos os dados do GitHub são acessíveis através do servidor MCP do GitHub
 ### Problemas Comuns
 
 **Problema**: Ferramenta não encontrada ou não disponível
+
 - **Solução**: Verifique se você está usando `allowed:` para restringir ferramentas. Considere usar `toolsets:` em vez disso para obter todas as ferramentas relacionadas.
 - **Verifique**: Execute `gh aw mcp inspect <nome-do-fluxo-de-trabalho>` para ver quais ferramentas estão realmente disponíveis.
 
 **Problema**: Funcionalidade faltando após especificar toolset
+
 - **Causa**: Usando um toolset muito restrito que não inclui todas as ferramentas necessárias
 - **Solução**: Adicione toolsets adicionais (por exemplo, `toolsets: [default, actions]`) ou use `[all]` para acesso total
 
 **Problema**: Fluxo de trabalho usando lista `allowed:` é verboso e difícil de manter
+
 - **Solução**: Migre para a configuração `toolsets:` usando o guia de migração acima
 
 ### Melhores Práticas para Depuração
