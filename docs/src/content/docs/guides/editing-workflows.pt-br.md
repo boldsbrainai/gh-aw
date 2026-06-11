@@ -20,6 +20,7 @@ O corpo em markdown é carregado em tempo de execução a partir do arquivo `.md
 ### Exemplo: Adicionando Instruções
 
 **Antes** (em `.github/workflows/issue-triage.md`):
+
 ```markdown
 ---
 on:
@@ -33,6 +34,7 @@ Leia a issue #${{ github.event.issue.number }} e adicione os labels apropriados.
 ```
 
 **Depois** (editado no GitHub.com):
+
 ```markdown
 ---
 on:
@@ -85,6 +87,7 @@ Quaisquer alterações na configuração do frontmatter entre os marcadores `---
 ### Exemplo: Adicionando uma Ferramenta (Exige Recompilação)
 
 **Antes**:
+
 ```yaml
 ---
 on:
@@ -94,6 +97,7 @@ on:
 ```
 
 **Depois** (deve recompilar):
+
 ```yaml
 ---
 on:

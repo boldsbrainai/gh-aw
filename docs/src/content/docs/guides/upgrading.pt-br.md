@@ -1,11 +1,11 @@
 ---
-title: Atualizando Fluxos de Trabalho Agenticos
-description: Guia passo a passo para atualizar seu repositório para a versão mais recente dos fluxos de trabalho agenticos, incluindo atualização de extensões, aplicação de codemods, compilação de fluxos de trabalho e validação de alterações.
+title: Atualizando Fluxos de Trabalho Agênticos
+description: Guia passo a passo para atualizar seu repositório para a versão mais recente dos fluxos de trabalho agênticos, incluindo atualização de extensões, aplicação de codemods, compilação de fluxos de trabalho e validação de alterações.
 sidebar:
   order: 100
 ---
 
-Este guia orienta você na atualização dos fluxos de trabalho agenticos. `gh aw upgrade` lida com todo o processo: atualização do arquivo do agente dispatcher, migração de sintaxe de fluxo de trabalho obsoleta e recompilação de todos os fluxos de trabalho.
+Este guia orienta você na atualização dos fluxos de trabalho agênticos. O `gh aw upgrade` lida com todo o processo: atualização do arquivo do agente dispatcher, migração de sintaxe de fluxo de trabalho obsoleta e recompilação de todos os fluxos de trabalho.
 
 > [!TIP]
 > Atualização Rápida
@@ -16,17 +16,17 @@ Este guia orienta você na atualização dos fluxos de trabalho agenticos. `gh a
 > gh aw upgrade
 > ```
 >
-> Isso atualiza arquivos de agente, aplica codemods e compila todos os fluxos de trabalho.
+> Isso atualiza os arquivos do agente, aplica codemods e compila todos os fluxos de trabalho.
 
 ## Pré-requisitos
 
-Antes de atualizar, certifique-se de ter o GitHub CLI (`gh`) v2.0.0+, a extensão gh-aw mais recente e um diretório de trabalho limpo em seu repositório Git. Verifique com `gh --version`, `gh extension list | grep gh-aw` e `git status`.
+Antes de atualizar, certifique-se de ter o GitHub CLI (`gh`) v2.0.0+, a extensão gh-aw mais recente e um diretório de trabalho limpo no seu repositório Git. Verifique com `gh --version`, `gh extension list | grep gh-aw` e `git status`.
 
-Crie um branch de backup antes de atualizar para que você possa recuperar caso algo dê errado:
+Crie uma branch de backup antes de atualizar para que você possa recuperar se algo der errado:
 
 ```bash wrap
 git checkout -b backup-antes-da-atualizacao
-git checkout -  # retorne para o seu branch anterior
+git checkout -  # retorne para sua branch anterior
 ```
 
 ## Passo 1: Atualizar a Extensão
@@ -37,7 +37,7 @@ Atualize a extensão `gh aw` para obter os recursos e codemods mais recentes:
 gh extension upgrade gh-aw
 ```
 
-Verifique sua versão com `gh aw version` e compare com a [última versão](https://github.com/github/gh-aw/releases). Se encontrar problemas, tente uma reinstalação limpa com `gh extension remove gh-aw` seguido por `gh extension install github/gh-aw`.
+Verifique sua versão com `gh aw version` e compare com a [última versão](https://github.com/github/gh-aw/releases). Se encontrar problemas, tente uma reinstalação limpa com `gh extension remove gh-aw` seguida de `gh extension install github/gh-aw`.
 
 ## Passo 2: Executar o Comando de Atualização
 
@@ -51,7 +51,7 @@ Este comando realiza três operações principais:
 
 ### 2.1 Atualiza o Arquivo do Agente Dispatcher
 
-Atualiza `.github/agents/agentic-workflows.agent.md` para o modelo mais recente. Arquivos de prompt de fluxo de trabalho (`.github/aw/*.md`) são resolvidos diretamente do GitHub pelo agente — eles não são mais gerenciados pela CLI.
+Atualiza `.github/agents/agentic-workflows.agent.md` para o template mais recente. Os arquivos de prompt de fluxo de trabalho (`.github/aw/*.md`) são resolvidos diretamente do GitHub pelo agente — eles não são mais gerenciados pela CLI.
 
 ### 2.2 Aplica Codemods a Todos os Fluxos de Trabalho
 
@@ -59,47 +59,47 @@ A atualização aplica automaticamente codemods para corrigir campos obsoletos e
 
 ### 2.3 Compila Todos os Fluxos de Trabalho
 
-A atualização compila automaticamente todos os fluxos de trabalho para gerar ou atualizar arquivos `.lock.yml`, garantindo que estejam prontos para executar no GitHub Actions.
+A atualização compila automaticamente todos os fluxos de trabalho para gerar ou atualizar os arquivos `.lock.yml`, garantindo que estejam prontos para serem executados no GitHub Actions.
 
 ### Opções de Comando
 
 ```bash wrap
-gh aw upgrade                       # atualiza arquivos de agente + codemods + compila
-gh aw upgrade -v                    # saída detalhada (verbose)
-gh aw upgrade --no-fix              # pula codemods e compilação
+gh aw upgrade                       # atualiza arquivos do agente + codemods + compila
+gh aw upgrade -v                    # saída verbosa
+gh aw upgrade --no-fix              # pular codemods e compilação
 gh aw upgrade --dir custom/workflows
 ```
 
 ## Passo 3: Revisar as Alterações
 
-Execute `git diff .github/workflows/` para verificar as alterações. Migrações típicas incluem `sandbox: false` → `sandbox.agent: false`, `app:` → `github-app:`, `safe-inputs:` → `mcp-scripts:`, `daily at` → `daily around`, e remoção de campos obsoletos `network.firewall` e `mcp-scripts.mode`.
+Execute `git diff .github/workflows/` para verificar as alterações. Migrações típicas incluem `sandbox: false` → `sandbox.agent: false`, `app:` → `github-app:`, `safe-inputs:` → `mcp-scripts:`, `daily at` → `daily around` e a remoção dos campos obsoletos `network.firewall` e `mcp-scripts.mode`.
 
-## Passo 4: Commitar e Dar Push
+## Passo 4: Fazer Commit e Push
 
-Prepare (stage) e commite suas alterações:
+Prepare e faça commit das suas alterações:
 
 ```bash wrap
 git add .github/workflows/ .github/agents/
-git commit -m "Atualizar fluxos de trabalho agenticos para a versão mais recente"
+git commit -m "Atualizar fluxos de trabalho agênticos para a versão mais recente"
 git push origin main
 ```
 
-Sempre commite arquivos `.md` e `.lock.yml` juntos.
+Sempre faça commit dos arquivos `.md` e `.lock.yml` juntos.
 
-## Resolução de Problemas
+## Solução de Problemas
 
 **A atualização da extensão falha:** Tente uma reinstalação limpa com `gh extension remove gh-aw && gh extension install github/gh-aw`.
 
 **Codemods não aplicados:** Aplique manualmente com `gh aw fix --write -v`.
 
-**Erros de compilação:** Revise os erros com `gh aw compile meu-fluxo-de-trabalho --validate` e corrija a sintaxe YAML nos arquivos de origem.
+**Erros de compilação:** Revise os erros com `gh aw compile my-workflow --validate` e corrija a sintaxe YAML nos arquivos de origem.
 
-**Fluxos de trabalho não executando:** Verifique se os arquivos `.lock.yml` estão commitados, verifique o status com `gh aw status` e confirme se os segredos são válidos com `gh aw secrets bootstrap`.
+**Fluxos de trabalho não executando:** Verifique se os arquivos `.lock.yml` estão com commit, verifique o status com `gh aw status` e confirme se os segredos são válidos com `gh aw secrets bootstrap`.
 
-**Alterações que quebram o fluxo (Breaking changes):** Reverta com `git checkout backup-antes-da-atualizacao` e revise as [notas de lançamento](https://github.com/github/gh-aw/releases).
+**Alterações que quebram (Breaking changes):** Reverta com `git checkout backup-antes-da-atualizacao` e revise as [notas de lançamento](https://github.com/github/gh-aw/releases).
 
 ## Tópicos Avançados
 
-**Atualizando entre versões:** Revise o [changelog](https://github.com/github/gh-aw/blob/main/CHANGELOG.md) para alterações cumulativas ao atualizar entre múltiplos lançamentos.
+**Atualizando entre versões:** Revise o [changelog](https://github.com/github/gh-aw/blob/main/CHANGELOG.md) para alterações cumulativas ao atualizar entre várias versões.
 
-Veja o [guia de resolução de problemas](/gh-aw/troubleshooting/common-issues/) se você encontrar problemas.
+Veja o [guia de solução de problemas](/gh-aw/troubleshooting/common-issues/) se você encontrar problemas.

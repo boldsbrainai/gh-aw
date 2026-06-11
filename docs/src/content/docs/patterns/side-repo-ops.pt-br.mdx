@@ -1,0 +1,512 @@
+---
+title: SideRepoOps
+description: A maneira simples e sem atrito de começar com agentes de relatório - use um repositório separado para executar fluxos de trabalho agenticos que visam seu código-fonte principal
+sidebar:
+  badge: { text: 'Recomendado', variant: 'success' }
+---
+
+import { FileTree } from '@astrojs/starlight/components';
+
+SideRepoOps é um padrão de desenvolvimento onde você executa fluxos de trabalho agenticos a partir de um repositório "lateral" separado que visa sua base de código principal. Isso mantém issues, comentários e execuções de fluxo de trabalho geradas por IA isoladas do seu repositório principal, proporcionando uma separação mais limpa entre a infraestrutura de automação e seu código de produção.
+
+## Quando usar o SideRepoOps
+
+SideRepoOps é ideal quando você é novo em fluxos de trabalho agenticos e quer uma maneira de baixo risco para experimentar — nenhuma mudança é necessária em seu repositório principal, issues geradas por IA permanecem separadas do desenvolvimento orgânico, e a lógica de automação sensível permanece em um repositório privado. Use-o para experimentação de fluxo de trabalho, automação centralizada em múltiplos repositórios ou gerenciamento de fluxos de trabalho para repositórios que você não controla diretamente.
+
+## Como ele difere do MultiRepoOps
+
+Enquanto o [MultiRepoOps](/gh-aw/patterns/multi-repo-ops/) executa fluxos de trabalho **a partir** do seu repositório principal que criam recursos **em** outros repositórios, o SideRepoOps inverte este padrão:
+
+| Padrão | Localização do Fluxo de Trabalho | Repositório de Destino | Caso de Uso |
+|---------|------------------|-------------------|----------|
+| **MultiRepoOps** | Repositório principal | Outros repositórios | Coordenar trabalho entre projetos relacionados |
+| **SideRepoOps** | Repositório lateral separado | Repositório principal | Isolar infraestrutura de automação da base de código principal |
+
+**Arquitetura de Exemplo:**
+
+```text
+┌─────────────────┐          ┌──────────────────┐
+│  Repo Lateral   │          │  Repo Principal  │
+│  (fluxos)       │ ────────>│  (código alvo)   │
+│                 │   Usa    │                  │
+│  - automação/   │   PAT    │  - src/          │
+│  - .github/     │          │  - tests/        │
+│    fluxos/      │          │  - docs/         │
+└─────────────────┘          └──────────────────┘
+```
+
+> [!TIP]
+> Testando com TrialOps
+> Antes de implementar fluxos de trabalho SideRepoOps em produção, use [TrialOps](/gh-aw/experimental/trial-ops/) para testá-los em repositórios de teste isolados. Isso permite validar o comportamento e iterar em prompts sem criar issues reais em seus repositórios.
+
+## Requisitos de Configuração
+
+### 1. Criar o Repositório Lateral
+
+Crie um novo repositório (público ou privado) para hospedar seus fluxos de trabalho agenticos. Nenhum código é necessário — apenas fluxos de trabalho.
+
+```bash
+gh repo create my-org/my-project-automation --private
+gh repo clone my-org/my-project-automation
+cd my-project-automation
+```
+
+### 2. Configurar Personal Access Token (PAT)
+
+Crie um [PAT refinado](https://github.com/settings/personal-access-tokens/new?name=GH_AW_MAIN_REPO_TOKEN&description=GitHub+Agentic+Workflows+-+Cross-repository+access&contents=read&issues=write&pull_requests=write) (este link preenche previamente o nome do token, descrição e permissões) com acesso ao repositório principal e conceda estas permissões: **Contents** (Read), **Issues** (Read+Write), **Pull requests** (Read+Write), e **Metadata** (Read).
+
+Para PATs clássicos, use o escopo `repo`. Armazene o token como um segredo:
+
+```bash
+gh aw secrets set GH_AW_MAIN_REPO_TOKEN --value "SEU_PAT_AQUI"
+```
+
+> [!TIP]
+> Melhores Práticas de Segurança
+> Use PATs refinados escopados a repositórios específicos. Defina datas de expiração e rotacione os tokens regularmente.
+
+### 3. Habilitar GitHub Actions
+
+Certifique-se de que o GitHub Actions esteja habilitado nas configurações do seu repositório lateral.
+
+## Configuração de Fluxo de Trabalho
+
+### Fluxo de Trabalho SideRepoOps Básico
+
+Crie um fluxo de trabalho no seu repositório lateral que vise o repositório principal:
+
+```aw wrap
+---
+on:
+  workflow_dispatch:
+    inputs:
+      task_description:
+        description: "Em que o agente deve trabalhar?"
+        required: true
+
+engine: copilot
+
+permissions:
+  contents: read
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+  create-issue:
+    target-repo: "my-org/main-repo"
+    title-prefix: "[automação] "
+    labels: [automation, ai-generated]
+  create-pull-request:
+    target-repo: "my-org/main-repo"
+    base-branch: main
+
+tools:
+  github:
+    mode: remote
+    toolsets: [repos, issues, pull_requests]
+---
+
+# Automação de Repositório Lateral
+
+Você está executando a partir de um repositório de automação separado e precisa trabalhar na base de código principal.
+
+**Repositório de Destino**: my-org/main-repo
+
+**Tarefa**: {{inputs.task_description}}
+
+**Instruções**:
+
+1. Use ferramentas do GitHub para explorar o repositório principal (pesquisar código, revisar issues/PRs, verificar documentação)
+2. Conclua a tarefa criando issues ou PRs com descrições claras e labels apropriadas
+3. Todos os recursos devem incluir prefixo "[automação]", link para contexto e ter labels: automation, ai-generated
+
+Lembre-se: O fluxo de trabalho é executado no repositório de automação, mas todas as saídas vão para o repositório principal.
+```
+
+### Monitoramento Agendado a partir do Repositório Lateral
+
+Execute verificações agendadas no seu repositório principal:
+
+```aw wrap
+---
+on: weekly on monday
+
+engine: copilot
+
+permissions:
+  contents: read
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+  create-issue:
+    target-repo: "my-org/main-repo"
+    max: 5
+    labels: [weekly-check, automation]
+
+tools:
+  github:
+    mode: remote
+    toolsets: [repos, issues, pull_requests, actions]
+---
+
+# Verificação Semanal de Saúde do Repositório
+
+Analise o repositório principal e crie issues para quaisquer preocupações.
+
+**Repositório de Destino**: my-org/main-repo
+
+Verifique por PRs obsoletos (>30 dias), execuções de CI falhas na main, dependências desatualizadas com avisos de segurança, lacunas na documentação e código de alta complexidade precisando de refatoração.
+
+Crie issues para descobertas significativas com descrições de problemas claras, links para códigos/PRs relevantes, próximos passos sugeridos e labels de prioridade.
+```
+
+## Configuração de Ferramentas GitHub
+
+Quando fluxos de trabalho são executados em um repositório lateral, você deve habilitar ferramentas GitHub com `mode: remote` para acessar o repositório principal:
+
+```yaml wrap
+tools:
+  github:
+    mode: remote                    # Necessário para acesso entre repositórios
+    toolsets: [repos, issues, pull_requests]
+```
+
+Conjuntos de ferramentas disponíveis: **repos** (arquivos, código, commits, releases), **issues** (listar/pesquisar/ler), **pull_requests** (listar/pesquisar/ler), **actions** (execuções de fluxo de trabalho/artefatos), e **context** (metadados do repositório).
+
+> [!NOTE]
+> Ferramentas GitHub com `mode: local` (baseadas em Docker) só podem acessar o repositório onde o fluxo de trabalho está sendo executado. Use sempre `mode: remote` para SideRepoOps.
+
+## Acesso a Repositório Privado
+
+Para repositórios privados, seu PAT deve ter acesso explícito ao repositório com escopos de permissão apropriados (contents, issues, pull_requests):
+
+```yaml wrap
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}  # Necessário para repos privados
+  create-issue:
+    target-repo: "my-org/private-main-repo"
+
+tools:
+  github:
+    mode: remote
+    github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}  # Token explícito para ferramentas
+    toolsets: [repos, issues, pull_requests]
+```
+
+> [!WARNING]
+> O `GITHUB_TOKEN` padrão fornecido pelo GitHub Actions não pode acessar outros repositórios. Você **deve** usar um PAT com permissões apropriadas para SideRepoOps.
+
+## Padrões Comuns
+
+### Triagem a partir do Repositório Lateral
+
+Execute fluxos de trabalho de triagem em issues do repositório principal:
+
+```aw wrap
+---
+on: every 6h
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+  add-labels:
+    target-repo: "my-org/main-repo"
+  add-comment:
+    target-repo: "my-org/main-repo"
+
+tools:
+  github:
+    mode: remote
+    toolsets: [issues]
+---
+
+# Triar Issues do Repositório Principal
+
+Encontre issues sem label em my-org/main-repo e adicione labels apropriadas.
+```
+
+### Monitoramento de Qualidade de Código
+
+Monitore o repositório principal por problemas de qualidade:
+
+```aw wrap
+---
+on: weekly on monday
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+  create-issue:
+    target-repo: "my-org/main-repo"
+    labels: [code-quality, automation]
+    max: 10
+
+tools:
+  github:
+    mode: remote
+    toolsets: [repos, pull_requests]
+---
+
+# Revisão Semanal de Qualidade de Código
+
+Analise commits e PRs recentes em my-org/main-repo para:
+- Problemas de complexidade de código
+- Cobertura de teste ausente
+- Dependências desatualizadas
+- Vulnerabilidades de segurança
+
+Crie issues para descobertas significativas.
+```
+
+### Sincronização de Documentação
+
+Mantenha a documentação sincronizada a partir do repositório lateral:
+
+```aw wrap
+---
+on:
+  workflow_dispatch:
+    inputs:
+      docs_path:
+        description: "Caminho para a pasta de documentação"
+        default: "docs/"
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+  create-pull-request:
+    target-repo: "my-org/main-repo"
+    base-branch: main
+    title-prefix: "[docs] "
+
+tools:
+  github:
+    mode: remote
+    toolsets: [repos]
+---
+
+# Sincronização de Documentação
+
+Revise a documentação em {{inputs.docs_path}} de my-org/main-repo.
+Crie um PR com sugestões de melhoria.
+```
+
+## Solução de Problemas
+
+### Falhas de Autenticação
+
+Se você vir erros de "Resource not accessible by integration", verifique se seu PAT tem acesso ao repositório de destino, verifique se as permissões incluem os escopos necessários, certifique-se de que o PAT não expirou e confirme se `github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}` está configurado (não `GITHUB_TOKEN`).
+
+### Ferramentas GitHub Não Funcionando
+
+Se o agente não puder ler arquivos do repositório principal, use `mode: remote` para ferramentas GitHub e forneça um token explícito se o repositório principal for privado:
+
+```yaml wrap
+tools:
+  github:
+    mode: remote
+    github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+    toolsets: [repos]
+```
+
+### Issues Criadas no Repositório Errado
+
+Sempre especifique `target-repo` em safe outputs. Sem ele, safe outputs têm como padrão o repositório onde o fluxo de trabalho é executado:
+
+```yaml wrap
+safe-outputs:
+  create-issue:
+    target-repo: "my-org/main-repo"
+```
+
+### Itens de Linha do Tempo Não Desejados
+
+Se a automação cria referências cruzadas indesejadas na linha do tempo do seu repositório principal (por exemplo, referências `#123` criando entradas "mentioned in..."), use `allowed-github-references` para controlar o escape de referência:
+
+```yaml wrap
+safe-outputs:
+  allowed-github-references: []  # Escapar todas as referências
+  create-issue:
+    target-repo: "my-org/main-repo"
+```
+
+Isso impede que o GitHub crie links automáticos para números de issue e entradas de linha do tempo. Veja [Sanitização de Texto](/gh-aw/reference/safe-outputs/#text-sanitization-allowed-domains-allowed-github-references) para detalhes.
+
+## Comandos Slash
+
+O GitHub Actions apenas entrega eventos de webhook para fluxos de trabalho no repositório onde o evento ocorreu. Como os fluxos de trabalho do SideRepoOps vivem em um repositório lateral, eventos do repositório principal nunca os alcançam — **gatilhos `slash_command:` não podem ser usados diretamente em um fluxo de trabalho SideRepoOps**.
+
+### Padrão de Ponte Recomendado
+
+A abordagem recomendada é manter um fluxo de trabalho de relay leve no **repositório principal** que escuta o comando slash e o encaminha para o repositório lateral via `workflow_dispatch`. O fluxo de trabalho do repositório lateral faz o trabalho real.
+
+**Passo 1 — Fluxo de trabalho de relay no repositório principal:**
+
+```aw wrap
+---
+on: /review
+
+permissions:
+  contents: read
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_SIDE_REPO_TOKEN }}
+  workflow-dispatch:
+    target-repo: "my-org/automation-repo"
+    workflow: "review.md"
+    inputs:
+      source_repo: "my-org/main-repo"
+      pr_number: "${{ github.event.issue.number }}"
+      comment_body: "${{ steps.sanitized.outputs.text }}"
+---
+
+# Relay de Revisão
+
+Encaminhe este comando `/review` para o repositório de automação para processamento.
+```
+
+**Passo 2 — Fluxo de trabalho de revisão no repositório lateral:**
+
+```aw wrap
+---
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: "Repositório onde o comando foi acionado"
+        required: true
+      pr_number:
+        description: "Número do pull request"
+        required: true
+      comment_body:
+        description: "Texto de comentário sanitizado"
+        required: true
+
+engine: copilot
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+  add-comment:
+    target-repo: "${{ inputs.source_repo }}"
+
+tools:
+  github:
+    mode: remote
+    toolsets: [repos, pull_requests]
+---
+
+# Code Review
+
+Revise o pull request #{{inputs.pr_number}} em {{inputs.source_repo}}.
+
+Contexto do comentário de gatilho: "{{inputs.comment_body}}"
+
+Analise as mudanças de código e poste um comentário de revisão detalhado no pull request.
+```
+
+### Trocas (Trade-offs)
+
+| Abordagem | Isolamento | Simplicidade | Acesso ao Evento |
+|----------|-----------|------------|--------------|
+| **Comando slash diretamente no repo principal** | Baixo — fluxo vive no repo principal | Alto — sem relay necessário | Total — todos os eventos disponíveis |
+| **Padrão de ponte (relay + repo lateral)** | Alto — lógica de IA vive no repo lateral | Médio — dois fluxos para manter | Bom — relay passa contexto relevante |
+| **Polling agendado em vez disso** | Alto — sem mudanças no repo principal | Alto — fluxo único no repo lateral | Limitado — sem resposta em tempo real |
+
+> [!TIP]
+> Se você precisar apenas de alguns comandos slash, mantenha-os no repositório principal e use SideRepoOps apenas para fluxos de trabalho agendados e `workflow_dispatch`. Isso lhe dá o melhor dos dois mundos com complexidade mínima.
+
+## Tópicos Avançados
+
+### SideRepoOps Multi-Alvo
+
+Gerencie múltiplos repositórios principais a partir de um repositório lateral:
+
+```aw wrap
+---
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Repositório de destino (proprietário/repo)"
+        required: true
+      task:
+        description: "Descrição da tarefa"
+        required: true
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MULTI_REPO_PAT }}
+  create-issue:
+    target-repo: ${{ inputs.target_repo }}  # Alvo dinâmico
+---
+
+# Automação Multi-Repositório
+
+Trabalhe no repositório especificado pelo usuário: {{inputs.target_repo}}
+```
+
+### Fazendo Checkout do Repositório de Destino
+
+Quando seu fluxo de trabalho precisar executar ferramentas locais contra o repositório de destino (por exemplo, executar testes, linters ou scripts de build), faça o checkout para um caminho nomeado e navegue explicitamente o agente para esse diretório:
+
+```aw wrap
+---
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Repositório de destino (proprietário/repo)"
+        required: true
+
+checkout:
+  - repository: ${{ github.event.inputs.target_repo }}
+    path: repo
+    github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+    current: true
+
+engine: copilot
+
+permissions:
+  contents: read
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_MAIN_REPO_TOKEN }}
+  create-pull-request:
+    target-repo: ${{ github.event.inputs.target_repo }}
+    base-branch: main
+---
+
+# Executar Testes no Repositório de Destino
+
+Navegue para a pasta onde o repositório de destino foi feito o checkout: cd ${{ github.workspace }}/repo
+
+Execute a suíte de testes e relate quaisquer falhas.
+```
+
+> [!IMPORTANT]
+> `current: true` informa ao agente qual repositório tratar como seu alvo principal para operações GitHub — ele **não** define automaticamente o diretório de trabalho. Sem a instrução `cd` explícita no prompt, o agente começa em `$GITHUB_WORKSPACE` (o checkout do repositório lateral) e deve inferir o diretório correto por conta própria, o que pode levar a erros.
+
+### Usando GitHub Apps
+
+Para segurança aprimorada, use GitHub Apps em vez de PATs.
+
+Veja [Usando um GitHub App para Autenticação](/gh-aw/reference/auth/#using-a-github-app-for-authentication) para configuração completa, incluindo opções de escopo de repositório.
+
+### Sincronização Bidirecional
+
+Crie fluxos de trabalho no repositório principal que relatam de volta ao repositório lateral:
+
+**No main-repo:**
+```yaml wrap
+on:
+  issues:
+    types: [opened, labeled]
+
+safe-outputs:
+  github-token: ${{ secrets.GH_AW_SIDE_REPO_TOKEN }}
+  add-comment:
+    target-repo: "my-org/automation-repo"
+```
+
+Isso cria um loop de feedback onde o repositório lateral rastreia a eficácia da automação.
+
+## Relacionado
+
+**Padrões**: [MultiRepoOps](/gh-aw/patterns/multi-repo-ops/) · [ChatOps](/gh-aw/patterns/chat-ops/) · [Orchestration](/gh-aw/patterns/orchestration/) · [IssueOps](/gh-aw/patterns/issue-ops/)
+
+**Referência**: [Gatilhos de Comando](/gh-aw/reference/command-triggers/) · [Operações entre Repositórios](/gh-aw/reference/cross-repository/) · [Safe Outputs](/gh-aw/reference/safe-outputs/) · [Ferramentas GitHub](/gh-aw/reference/github-tools/) · [Autenticação](/gh-aw/reference/auth/) · [Reutilizando Fluxos de Trabalho](/gh-aw/guides/packaging-imports/)

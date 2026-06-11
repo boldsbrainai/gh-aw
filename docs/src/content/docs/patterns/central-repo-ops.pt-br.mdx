@@ -1,0 +1,450 @@
+---
+title: CentralRepoOps
+description: Opere e implemente alterações em muitos repositórios a partir de um único repositório de controle privado.
+---
+
+O CentralRepoOps usa um único repositório privado como um plano de controle para operações em larga escala em muitos repositórios.
+
+Use este padrão para implementações em toda a organização, adoção faseada (ondas piloto primeiro), governança central e priorização consciente de segurança em dezenas ou centenas de repositórios. Cada execução de orquestrador entrega gates de política consistentes, fan-out controlado (`max`) e uma trilha de decisão completa — sem fazer push de alterações na `main` para repositórios alvo individuais.
+
+## Exemplo: Implementação do Dependabot (Orquestrador + Trabalhador)
+
+Este padrão mapeia diretamente para seu par de implementação do Dependabot:
+
+- `dependabot-rollout-orchestrator.md` decide *onde* implementar a seguir.
+- `dependabot-rollout.md` executa *como* configurar cada repositório alvo.
+
+### Orquestrador (controle central)
+
+Digamos que você queira implementar uma nova configuração do Dependabot em 100 repositórios. Este exemplo mostra como fazer isso com base em um pequeno subconjunto.
+
+Navegue até seu repositório central e crie um arquivo de fluxo de trabalho `.github/workflows/dependabot-rollout-orchestrator.md` com o seguinte conteúdo:
+
+```aw wrap
+---
+on:
+  schedule: weekly on monday
+
+tools:
+  github:
+    github-token: ${{ secrets.GH_AW_READ_ORG_TOKEN }}
+    toolsets: [repos]
+
+safe-outputs:
+  dispatch-workflow:
+    workflows: [dependabot-rollout]
+    max: 5
+---
+
+# Orquestrador de Implementação do Dependabot
+
+Categorize e orquestre a implementação do Dependabot nos repositórios.
+
+**Repos alvo**: Todos os repositórios na organização
+
+## Tarefa
+
+1. **Filtrar** - Analise repositórios (a partir de entrada ou variável), verifique cada um quanto à existência de `.github/dependabot.yml`, mantenha apenas repositórios sem ele
+
+2. **Categorizar** - Leia o conteúdo do repositório para avaliar a complexidade:
+   - Simples: package.json único, <50 dependências, estrutura padrão
+   - Complexo: Vários arquivos package.json, >100 dependências ou múltiplos ecossistemas
+   - Conflitante: Tem configuração do Renovate ou scripts de atualização personalizados
+   - Segurança: Alertas de segurança abertos ou público com dependências
+
+3. **Priorizar** - Ordene os repositórios por preferência de implementação: simples → segurança → complexo → conflitante
+
+4. **Despachar** - Despache o trabalhador `dependabot-rollout` para cada repositório priorizado
+
+5. **Resumir** - Relate o total de candidatos, detalhamento da categorização, repositórios selecionados com fundamentação
+```
+
+Compile este fluxo de trabalho para gerar o arquivo de lock: `gh aw compile`.
+Crie um [PAT de granularidade fina](https://github.com/settings/personal-access-tokens/new?name=GH_AW_READ_ORG_TOKEN&description=GitHub+Agentic+Workflows+-+Org+read+access&contents=read) `GH_AW_READ_ORG_TOKEN` (este link preenche previamente o nome do token, a descrição e a permissão Contents: Read) com a organização como proprietário, selecione "All repositories" (ou uma lista de permissão de repositórios específicos) e conceda a permissão de Repositório: `Contents: Read-only`.
+Adicione isso aos segredos de repositório do seu Actions. Isso dá ao orquestrador acesso de leitura a todos os repositórios candidatos.
+
+### Trabalhador (execução entre repositórios)
+
+Em seguida, crie o fluxo de trabalho trabalhador `.github/workflows/dependabot-rollout.md` no seu repositório central, que operará em cada repositório alvo via checkout:
+
+````aw wrap
+---
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: 'Repositório alvo (formato proprietário/repo)'
+        required: true
+        type: string
+
+run-name: Implementação do Dependabot para ${{ github.event.inputs.target_repo }}
+
+concurrency:
+  group: gh-aw-${{ github.workflow }}-${{ github.event.inputs.target_repo }}
+
+engine:
+  id: copilot
+  concurrency:
+    group: gh-aw-copilot-${{ github.workflow }}-${{ github.event.inputs.target_repo }}
+
+checkout:
+  repository: ${{ github.event.inputs.target_repo }}
+  github-token: ${{ secrets.ORG_REPO_CHECKOUT_TOKEN }}
+  current: true
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+tools:
+  github:
+    github-token: ${{ secrets.GH_AW_READ_ORG_TOKEN }}
+    toolsets: [repos]
+
+safe-outputs:
+  github-token: ${{ secretsGH_AW_CROSS_REPO_PAT }}
+  create-pull-request:
+    target-repo: ${{ github.event.inputs.target_repo }}
+    title-prefix: '[dependabot] '
+    max: 1
+  create-issue:
+    target-repo: ${{ github.event.inputs.target_repo }}
+    title-prefix: '[dependabot-config] '
+    max: 1
+---
+
+# Configuração Inteligente do Dependabot
+
+Você está criando uma configuração **personalizada** do Dependabot baseada na análise deste repositório específico.
+
+**Repositório Alvo**: ${{ github.event.inputs.target_repo }}
+
+## Por que a IA é Necessária
+
+Você deve analisar a estrutura do repositório e criar uma configuração inteligente e personalizada — não um modelo genérico.
+
+## Passo 1: Analisar Repositório
+
+**Verifique conflitos:**
+
+- `.github/dependabot.yml` já existe? → Pare, crie issue explicando que ele existe
+- `.github/renovate.json` ou `renovate.json` existe? → Crie issue sobre a migração do Renovate
+- Existem scripts de atualização de dependência personalizados? → Crie issue sugerindo alternativa ao Dependabot
+
+**Analise a complexidade do gerenciador de pacotes:**
+
+Para **npm** (se package.json existir):
+
+- Conte o total de dependências (dependencies + devDependencies)
+- Verifique monorepo: Existem vários arquivos package.json em subdiretórios?
+- Simples: <20 dependências, package.json único
+- Complexo: >100 dependências OU estrutura de monorepo
+
+Para **Python** (requirements.txt, setup.py, pyproject.toml):
+
+- Conte as dependências
+- Verifique vários arquivos de requisitos
+
+Para **Go** (go.mod):
+
+- Note se presente
+
+Para **GitHub Actions** (.github/workflows/*.yml):
+
+- Conte os arquivos de fluxo de trabalho
+
+**Contexto de segurança:**
+
+- Use ferramentas do GitHub para verificar alertas de segurança abertos
+- Se alertas críticos existirem, priorize atualizações de segurança
+
+## Passo 2: Criar Configuração Personalizada
+
+Com base na sua análise, crie uma configuração apropriada:
+
+### Repositório Simples (<20 deps npm, sem monorepo)
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"  # Baixa complexidade = mais frequente
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+```
+
+### Repositório Complexo (>100 deps OU alertas de segurança)
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"  # Alta complexidade = menos frequente
+    groups:
+      production:
+        patterns: ["*"]
+        exclude-patterns: ["@types/*", "@jest/*"]
+      dev-dependencies:
+        patterns: ["@types/*", "@jest/*", "eslint*"]
+```
+
+### Monorepo (vários package.json)
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/packages/frontend"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/packages/backend"
+    schedule:
+      interval: "weekly"
+```
+
+## Passo 3: Entregar Configuração
+
+**Se a configuração for direta (sem conflito com Renovate):**
+
+- Crie `.github/dependabot.yml` com sua configuração personalizada
+- Crie pull request com:
+  - Título: "[dependabot] Adicionar configuração personalizada do Dependabot"
+  - Corpo explicando: contagem de dependências, por que semanal vs diário, estratégia de agrupamento, etc.
+
+**Se Renovate detectado:**
+
+- Crie issue explicando os benefícios da migração e a configuração proposta
+- Inclua a configuração gerada no corpo da issue
+
+**Se nenhum gerenciador de pacotes for encontrado:**
+
+- Crie issue: "Nenhum gerenciador de pacotes suportado detectado"
+
+## Chave: Explique seu Raciocínio
+
+No corpo do PR/issue, explique **por que** você escolheu esta configuração específica (não um modelo genérico).
+````
+
+Compile este fluxo de trabalho para gerar o arquivo de lock: `gh aw compile`.
+Crie um [PAT de granularidade fina](https://github.com/settings/personal-access-tokens/new?name=ORG_REPO_CHECKOUT_TOKEN&description=GitHub+Agentic+Workflows+-+Checkout+token&contents=write&actions=write) `ORG_REPO_CHECKOUT_TOKEN` (este link preenche previamente o nome do token, descrição e permissões) com a organização como proprietário, selecione "All repositories" (ou lista de permissão de repositórios específicos) e conceda permissão de Repositório: `Contents: Read & write`, `Actions: Read & write`.
+Isso permite que o trabalhador faça o checkout do repositório alvo.
+
+Crie também um [PAT de granularidade fina](https://github.com/settings/personal-access-tokens/new?name=REPO_SAFE_OUTPUTS_TOKEN&description=GitHub+Agentic+Workflows+-+Safe+outputs+token&contents=write&issues=write&pull_requests=write) `REPO_SAFE_OUTPUTS_TOKEN` (este link preenche previamente o nome do token, descrição e permissões) com a organização como proprietário, selecione "All repositories" (ou lista de permissão de repositórios específicos) e conceda permissão de Repositório: `Contents: Write`, `Issues: Write`, `Pull Requests: Write`.
+Isso permite que o trabalhador crie pull requests e issues no repositório alvo com base nas instruções do orquestrador.
+
+Após a configuração ser concluída, você pode executar o orquestrador com `workflow_dispatch` (`target_repos`) ou deixar que o gatilho de agendamento seja executado automaticamente.
+
+## Gatilhos mais ricos com um arquivo de gatilho
+
+Embutir um gatilho `schedule:` diretamente no orquestrador é a configuração mais simples, mas limita o orquestrador apenas a execuções baseadas em tempo. Um **arquivo de gatilho** — um fluxo de trabalho do GitHub Actions simples e escrito manualmente — resolve isso separando a definição do gatilho da lógica do agente:
+
+- O orquestrador compilado expõe um gatilho `workflow_call`.
+- Um arquivo `.yml` estável e raramente alterado define os eventos reais do GitHub que iniciam a execução.
+- O arquivo de gatilho chama o orquestrador compilado via `workflow_call`, encaminhando quaisquer entradas e segredos.
+
+Isso significa que você pode atualizar quando e por que o orquestrador é executado — reagindo a um label, um push de repositório, um alerta de segurança ou um despacho manual — sem tocar ou recompilar o fluxo de trabalho agêntico.
+
+### Adicione `workflow_call` ao Orquestrador
+
+Estenda a seção `on:` do orquestrador com `workflow_call` e declare quaisquer entradas que você deseja que os chamadores passem:
+
+```aw wrap
+---
+on:
+  schedule: weekly on monday
+  workflow_call:
+    inputs:
+      reason:
+        description: "Por que esta execução foi disparada (nome do label, tipo de evento, etc.)"
+        type: string
+        default: "scheduled"
+
+tools:
+  github:
+    github-token: ${{ secrets.GH_AW_READ_ORG_TOKEN }}
+    toolsets: [repos]
+...
+---
+
+# Orquestrador de Implementação do Dependabot
+...
+```
+
+Compile o fluxo de trabalho após adicionar `workflow_call`: `gh aw compile`.
+
+### Crie o Arquivo de Gatilho Estável
+
+Adicione um fluxo de trabalho do GitHub Actions simples ao lado do orquestrador compilado. Este arquivo é escrito manualmente, commitado uma vez e raramente precisa mudar:
+
+```yaml title=".github/workflows/central-ops-trigger.yml"
+name: Gatilho Central Ops
+
+on:
+  # Disparar quando um repositório é rotulado para implementação do Dependabot
+  issues:
+    types: [labeled]
+
+  # Disparar em qualquer push na main (ex: alteração de configuração)
+  push:
+    branches: [main]
+
+  # Permitir execuções manuais com contexto
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Motivo para gatilho manual"
+        required: false
+        default: "manual"
+
+jobs:
+  trigger:
+    uses: ./.github/workflows/dependabot-rollout-orchestrator.lock.yml
+    with:
+      reason: ${{ github.event_name }}
+    secrets: inherit
+```
+
+> [!NOTE]
+> O arquivo de gatilho faz referência ao **arquivo de lock** compilado (`*.lock.yml`), não à fonte markdown. Recompilar o orquestrador regenera o arquivo de lock no local; o arquivo de gatilho não precisa mudar.
+
+> [!TIP]
+> Use `secrets: inherit` para encaminhar todos os segredos do repositório para o fluxo de trabalho chamado automaticamente. Se você preferir controle explícito, liste cada segredo em `secrets:` no bloco `uses`.
+
+### Chamando o Orquestrador de Outro Repositório
+
+O arquivo de gatilho também pode viver em um **repositório diferente** — por exemplo, dentro de cada repositório alvo — e chamar de volta o orquestrador no repositório de controle central. Isso permite que repositórios individuais decidam *quando* solicitar uma implementação sem exigir acesso direto ao repo central.
+
+```yaml title=".github/workflows/request-dependabot-rollout.yml"
+name: Solicitar Implementação do Dependabot
+
+on:
+  # Disparar quando um mantenedor rotula o repo para implementação
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    # Chama o fluxo de trabalho orquestrador no repo de controle central
+    uses: my-org/central-ops/.github/workflows/dependabot-rollout-orchestrator.lock.yml@main
+    with:
+      reason: "${{ github.event_name }} em ${{ github.repository }}"
+    secrets:
+      GH_AW_READ_ORG_TOKEN: ${{ secrets.GH_AW_READ_ORG_TOKEN }}
+```
+
+### Trade-offs: Apenas Agendamento vs Arquivo de Gatilho
+
+| | Apenas Agendamento | Arquivo de Gatilho + `workflow_call` |
+|---|---|---|
+| **Configuração** | Arquivo único, sem configuração extra | Dois arquivos (orquestrador + arquivo de gatilho) |
+| **Flexibilidade de Gatilho** | Apenas Cron/agendamento | Qualquer evento do GitHub (issues, push, PRs, labels…) |
+| **Alterar gatilho sem recompilar** | Não — gatilho está embutido no fluxo de trabalho agêntico | Sim — edite o arquivo de gatilho `.yml` simples |
+| **Passar contexto de evento para o agente** | Não é possível | Sim — via entradas de `workflow_call` |
+| **Estabilidade** | Gatilho muda a cada recompilação | Arquivo de gatilho permanece fixo entre recompilações |
+| **Quando usar** | Jobs recorrentes simples sem dependência de evento | Jobs que devem reagir à atividade do repositório ou precisam de agendamento flexível |
+
+A abordagem de apenas agendamento é perfeitamente adequada para um orquestrador autônomo noturno ou semanal. Mude para o padrão de arquivo de gatilho quando precisar reagir a eventos do repositório, passar contexto extra para o agente ou desacoplar alterações de gatilho do ciclo de compilação.
+
+## Arquivo de Gatilho Entre Repositórios
+
+<a id="cross-repo-setup"></a>
+
+Um arquivo de gatilho pode viver em um **repositório diferente** (por exemplo, em cada repositório de aplicação) e chamar de volta um fluxo de trabalho agêntico hospedado em um repositório de plataforma central. Este padrão é útil para plataformas multi-inquilino onde cada repositório de aplicação dispara um fluxo de trabalho agêntico compartilhado.
+
+```yaml title=".github/workflows/platform-relay.yml (no repositório da aplicação)"
+name: Relay da Plataforma
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  relay:
+    uses: my-org/platform-repo/.github/workflows/platform-gateway.lock.yml@main
+    with:
+      issue_number: ${{ github.event.issue.number }}
+      source_repo: ${{ github.repository }}
+    secrets: inherit
+```
+
+### Visibilidade do Repositório
+
+O repositório chamado (plataforma) deve atender a um destes requisitos:
+
+- **Público** — acessível a qualquer pessoa
+- **Interno** — acessível dentro da organização
+- **Privado com acesso a Actions** — em **Settings → Actions → General**, sob *Access*, selecione "Accessible from repositories in the [organization] organization"
+
+### Configuração de Segredos
+
+`COPILOT_GITHUB_TOKEN` deve ser configurado nos segredos do repositório **chamador**. Ao usar `secrets: inherit`, todos os segredos do chamador são encaminhados automaticamente para o fluxo de trabalho da plataforma. Isso significa que:
+
+- Requisições premium do Copilot são faturadas no token do **chamador**, não da plataforma
+- Cada equipe de aplicação gerencia seu próprio `COPILOT_GITHUB_TOKEN`
+- O repositório da plataforma não precisa manter tokens para todos os chamadores
+
+### Como Funciona
+
+Quando o compilador detecta `workflow_call` na seção `on:`, ele gera uma etapa de checkout ciente de repositórios cruzados no job de ativação. Uma etapa `resolve-host-repo` inspeciona `GITHUB_WORKFLOW_REF` em tempo de execução para determinar se o fluxo de trabalho em execução vive em um repositório diferente daquele que disparou o evento. Quando uma invocação entre repositórios é detectada, o job de ativação faz o checkout da pasta `.github` do **repositório da plataforma** — onde o markdown do fluxo de trabalho e as importações de tempo de execução vivem — em vez do repositório do chamador.
+
+Isso lida tanto com eventos `workflow_call` diretos quanto relays disparados por eventos (por exemplo, um arquivo de gatilho que escuta `issue_comment` e então chama `workflow_call`) porque `GITHUB_WORKFLOW_REF` sempre contém o caminho do arquivo de fluxo de trabalho em execução, independentemente do evento de disparo.
+
+### Configuração Entre Organizações
+
+A configuração acima funciona quando os repositórios chamador e chamado estão na **mesma organização** (o `GITHUB_TOKEN` pode acessar repositórios internos dentro da organização). Quando o repositório da plataforma está em uma **organização diferente**, o `GITHUB_TOKEN` do chamador não consegue fazer checkout dos arquivos do repositório da plataforma, produzindo um erro como:
+
+```
+fatal: repository 'https://github.com/other-org/platform-repo/' not found
+```
+
+Use `inlined-imports: true` no fluxo de trabalho da plataforma para tornar o arquivo de lock autônomo. Todo conteúdo importado é embutido no `.lock.yml` em tempo de compilação e nenhum checkout entre organizações é necessário em tempo de execução:
+
+```aw wrap
+---
+on:
+  workflow_call:
+engine: copilot
+inlined-imports: true
+imports:
+  - shared/common-tools.md
+  - shared/security-setup.md
+---
+
+# Fluxo de Trabalho de Gateway da Plataforma
+
+Instruções de fluxo de trabalho aqui.
+```
+
+Após adicionar `inlined-imports: true`, recompile e faça commit do `.lock.yml` atualizado:
+
+```bash
+gh aw compile platform-gateway
+git add .github/workflows/platform-gateway.lock.yml
+git commit -m "compile: embutir importações para workflow_call entre organizações"
+git push
+```
+
+> [!NOTE]
+> Com `inlined-imports: true`, qualquer alteração em um arquivo importado exige recompilar o fluxo de trabalho para entrar em vigor. Veja [Arquivos de Lock Autônomos](/gh-aw/reference/imports/#self-contained-lock-files-inlined-imports-true) para detalhes completos e trade-offs.
+
+## Melhores Práticas
+
+- Mantenha as permissões do orquestrador restritas; delegue escritas específicas do repo para trabalhadores.
+- Use limites de saída segura (`max`) e allowlists de fluxo de trabalho alvo explícitas.
+- Adicione IDs de correlação às entradas de despacho do trabalhador para rastreamento.
+
+## Padrões Relacionados
+
+- **[MultiRepoOps](/gh-aw/patterns/multi-repo-ops/)** - Capacidade de automação entre repositórios
+- **[Operações Entre Repositórios](/gh-aw/reference/cross-repository/)** - Checkout e configuração de repositório alvo
+- **[Orquestração](/gh-aw/patterns/orchestration/)** - Padrão genérico de despacho orquestrador/trabalhador
+- **[SideRepoOps](/gh-aw/patterns/side-repo-ops/)** - Configuração de plano de controle isolado

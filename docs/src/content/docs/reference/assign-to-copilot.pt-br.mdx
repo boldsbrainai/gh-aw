@@ -1,0 +1,101 @@
+---
+title: Atribuir ao Copilot
+description: Atribua programaticamente o agente de codificação GitHub Copilot a issues e pull requests
+sidebar:
+  order: 810
+---
+
+import Video from '../../../components/Video.astro';
+
+Esta página descreve como atribuir programaticamente o [agente de codificação GitHub Copilot](https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent) a issues ou pull requests usando o safe output `assign-to-agent`. Isso automatiza o [fluxo de trabalho padrão do GitHub para atribuir issues ao Copilot](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-a-pr#assigning-an-issue-to-copilot).
+
+## Quando usar
+
+Use `assign-to-agent` quando precisar atribuir programaticamente o agente de codificação Copilot a issues ou PRs **existentes** através de automação de fluxo de trabalho.
+
+Se você estiver criando novas issues e quiser atribuir o agente de codificação Copilot imediatamente, use `assignees: copilot` em sua configuração de [`create-issue`](/gh-aw/reference/safe-outputs/#issue-creation-create-issue) em vez disso.
+
+## Configuração
+
+```yaml wrap
+safe-outputs:
+  assign-to-agent:
+    name: "copilot"            # agente padrão (padrão: "copilot")
+    model: "claude-opus-4.6"   # modelo de IA padrão (padrão: "auto")
+    custom-agent: "agent-id"   # ID de agente customizado padrão (opcional)
+    custom-instructions: "..."  # instruções customizadas padrão (opcional)
+    allowed: [copilot]         # restringir a agentes específicos (opcional)
+    max: 1                     # máximo de atribuições (padrão: 1)
+    target: "triggering"       # "triggering" (padrão), "*", ou número
+    target-repo: "owner/repo"  # onde a issue vive (entre repositórios)
+    pull-request-repo: "owner/repo"      # onde o PR deve ser criado (pode diferir do repo da issue)
+    allowed-pull-request-repos: [owner/repo1, owner/repo2]  # repositórios de PR permitidos adicionais
+    base-branch: "develop"     # branch de destino para PR (padrão: branch padrão do repo de destino)
+    github-token: ${{ secrets.GH_AW_AGENT_TOKEN }} # token para permissões
+```
+
+**Agentes suportados:** `copilot` (`copilot-swe-agent`)
+
+## Issue ou Pull Request de Destino
+
+O parâmetro `target` determina a qual issue ou PR atribuir o agente:
+
+- `target: "triggering"` (padrão) - Auto-resolve de `github.event.issue.number` ou `github.event.pull_request.number`
+- `target: "*"` - Requer `issue_number` ou `pull_number` explícito na saída do agente
+- `target: "123"` - Usa sempre a issue/PR #123
+
+## Criação de PR entre Repositórios
+
+Use `pull-request-repo` para criar pull requests em um repositório diferente daquele onde a issue vive — útil quando issues são rastreadas centralmente, mas o código vive em outro lugar. O repositório da issue é determinado por `target-repo` ou é o padrão para o repositório do fluxo de trabalho.
+
+`pull-request-repo` é incluído automaticamente na lista permitida; use `allowed-pull-request-repos` para repositórios adicionais. Use `base-branch` para apontar para um branch específico (o padrão é o branch padrão do repo de destino).
+
+## Filtragem de Responsável
+
+Quando uma lista `allowed` é configurada, os responsáveis agentes existentes que não estão na lista são removidos, enquanto os responsáveis usuários regulares são preservados.
+
+## Autenticação
+
+Este safe output requer um PAT refinado para autenticar a operação de atribuição do agente. O `GITHUB_TOKEN` padrão não possui as permissões necessárias.
+
+### Usando um Personal Access Token (PAT)
+
+O tipo de token necessário e as permissões dependem de se você possui o repositório ou se uma organização o possui.
+
+1. **Crie o PAT** com **Permissões de repositório**: Actions, Contents, Issues, Pull requests (todos Write).
+
+   - [Repositórios de propriedade do usuário](https://github.com/settings/personal-access-tokens/new?name=GH_AW_AGENT_TOKEN&description=GitHub+Agentic+Workflows+-+Agent+assignment&actions=write&contents=write&issues=write&pull_requests=write): Proprietário do recurso = sua conta de usuário; Acesso ao repositório = "Public repositories" ou repos específicos
+   - [Repositórios de propriedade da organização](https://github.com/settings/personal-access-tokens/new?name=GH_AW_AGENT_TOKEN&description=GitHub+Agentic+Workflows+-+Agent+assignment&actions=write&contents=write&issues=write&pull_requests=write): Proprietário do recurso = a organização; Acesso ao repositório = repositórios específicos que usarão o fluxo de trabalho
+
+2. Adicione aos segredos do repositório:
+
+   ```bash wrap
+   gh aw secrets set GH_AW_AGENT_TOKEN --value "SEU_PAT_AGENT_AQUI"
+   ```
+
+### Usando um GitHub App
+
+:::caution[Tokens de GitHub App não são suportados para atribuição ao Copilot]
+A API de atribuição do Copilot aceita apenas PATs refinados — tokens de instalação de GitHub App são rejeitados independentemente das permissões. Quando `github-app:` está configurado em `safe-outputs`, `assign-to-agent` cai para: `github-token:` explícito em `assign-to-agent`, então `github-token:` no nível de `safe-outputs`, então a cadeia de segredos mágica (`GH_AW_AGENT_TOKEN || GH_AW_GITHUB_TOKEN || GITHUB_TOKEN`).
+:::
+
+### Usando um segredo mágico
+
+Alternativamente, você pode definir o segredo mágico `GH_AW_AGENT_TOKEN` para um PAT adequado (veja o guia acima para criar um). Este nome de segredo é conhecido pelo GitHub Agentic Workflows e não precisa ser referenciado explicitamente em seu fluxo de trabalho.
+
+```bash wrap
+gh aw secrets set GH_AW_AGENT_TOKEN --value "<seu-token-pat>"
+```
+
+<Video
+    src="/gh-aw/videos/create-pat-org-agent.mp4"
+    caption="Criando um PAT refinado para repositórios de propriedade da organização com permissões para atribuição de agente"
+    aspectRatio="16:9"
+    silenced={true}
+/>
+
+## Documentação Relacionada
+
+- [Referência de Safe Outputs](/gh-aw/reference/safe-outputs/) - Todas as configurações de safe output
+- [Referência de Autenticação](/gh-aw/reference/auth/) - Todos os tokens e segredos
+- [IssueOps](/gh-aw/patterns/issue-ops/) - Padrões de fluxo de trabalho acionados por issue

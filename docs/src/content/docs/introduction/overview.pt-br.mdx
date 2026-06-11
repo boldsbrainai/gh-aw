@@ -1,0 +1,50 @@
+---
+title: Visão Geral
+description: O que são fluxos de trabalho agênticos e como eles permitem automação alimentada por IA no GitHub.
+sidebar:
+  label: Visão Geral
+  order: 1
+---
+
+## O que são Fluxos de Trabalho Agênticos?
+
+**[Fluxos de trabalho agênticos](/gh-aw/reference/glossary/#agentic-workflow)** são automações alimentadas por IA que podem entender o contexto, tomar decisões e realizar ações significativas — tudo a partir de instruções em linguagem natural que você escreve em markdown.
+
+Ao contrário da automação tradicional com regras fixas de se-então, os fluxos de trabalho agênticos usam agentes de codificação (como Copilot CLI, Claude da Anthropic ou Codex) para:
+- **Entender o contexto**: Leia seu repositório, issues e pull requests para entender a situação atual
+- **Tomar decisões**: Escolha ações apropriadas com base no contexto, não apenas condições predefinidas
+- **Adaptar o comportamento**: Responda de forma flexível a diferentes cenários sem exigir programação explícita para cada caso
+
+## Agentes de codificação, rodando com ferramentas, no GitHub Actions
+
+Com agentes de codificação, você descreve suas necessidades de automação em linguagem simples. O GitHub Agentic Workflows torna isso possível executando arquivos markdown em linguagem natural no [GitHub Actions](https://github.com/features/actions), que são executados por agentes de codificação de IA (sistemas de IA que executam suas instruções).
+
+Em vez de escrever scripts intrincados para lidar com triagem de issue, revisões de código ou gerenciamento de release, você simplesmente descreve o que deseja que aconteça. O agente de IA entende o contexto do seu repositório, interpreta a situação e toma as ações apropriadas — tudo a partir de algumas linhas de markdown.
+
+Aqui está um exemplo simples:
+
+```markdown wrap
+---
+on:                        # Gatilho: quando executar
+  issues:
+    types: [opened]
+
+permissions: read-all      # Segurança: somente leitura por padrão
+
+safe-outputs:              # Operações de escrita permitidas
+  add-comment:
+---
+# Agente Clarificador de Issue
+
+Analise a issue atual e peça detalhes adicionais se a issue não estiver clara.
+```
+
+O comando `gh aw compile` compila este arquivo markdown em um [arquivo `.lock.yml`](/gh-aw/reference/glossary/#workflow-lock-file-lockyml) (o fluxo de trabalho compilado que o GitHub Actions executa) que incorpora o frontmatter e carrega o corpo markdown em tempo de execução. Isso executa um agente de IA em um ambiente conteinerizado sempre que uma nova issue é aberta.
+
+[Compilação](/gh-aw/reference/glossary/#compilation) (converter markdown para YAML do GitHub Actions) valida sua configuração, aplica endurecimento de segurança e gera o arquivo de fluxo de trabalho final que o GitHub Actions pode executar. Pense nisso como compilar código — você escreve markdown amigável ao humano, o compilador produz YAML pronto para a máquina.
+
+O agente de IA lê o contexto do seu repositório, entende o conteúdo da issue e toma as ações apropriadas — tudo definido em linguagem natural em vez de código complexo.
+
+Os fluxos de trabalho usam permissões de leitura por padrão, com operações de escrita permitidas apenas através de [`safe-outputs`](/gh-aw/reference/safe-outputs/) (operações validadas do GitHub) higienizadas que permitem criar issues, comentários e PRs sem dar à IA acesso direto de escrita. O acesso pode ser limitado apenas aos membros da equipe, garantindo que os agentes de IA operem dentro de limites controlados.
+
+Mais exemplos de fluxos de trabalho podem ser encontrados na [coleção Agentics](https://github.com/githubnext/agentics).

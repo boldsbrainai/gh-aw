@@ -1,0 +1,193 @@
+---
+title: ProjectOps
+description: Automatize Projetos do GitHub com roteamento agentico, atualizações de campo e operações de escrita controladas
+sidebar:
+  badge: { text: 'Disparado por evento', variant: 'success' }
+---
+
+ProjectOps ajuda equipes a executar operações de projeto com menos manutenção manual.
+
+Ele se baseia nos [Projetos do GitHub](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects), que fornecem a camada central de planejamento e rastreamento para issues e pull requests, e adiciona suporte para decisões que exigem julgamento.
+
+ProjectOps lê o estado do projeto com ferramentas do GitHub e aplica mudanças através de [safe-outputs](/gh-aw/reference/safe-outputs/).
+É mais útil quando você precisa de roteamento consciente do contexto e atualizações de campo. Para transições simples baseadas em regras, [automações nativas](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-built-in-automations) geralmente são suficientes.
+
+Na prática, isso dá às equipes decisões de triagem mais rápidas, estado de board mais limpo, sinais de planejamento mais fortes em issues e pull requests relacionados, e atualizações de status mais prontas para decisão.
+
+## Pré-requisitos
+
+1. **Um board de Projeto** e copie a URL do projeto. Veja [Criando um projeto](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project#creating-a-project).
+2. **Um token de Projeto** (PAT ou token de GitHub App). Veja [Autenticação de Token de Projeto](#autenticação-de-token-de-projeto).
+3. **Um contrato de campo** (por exemplo: Status, Prioridade, Equipe, Iteração, Data Alvo). Veja [Entendendo campos](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields).
+
+## Autenticação de Token de Projeto
+
+Operações de projeto precisam de autenticação adicional porque o `GITHUB_TOKEN` padrão é escopado ao repositório e não pode acessar APIs de Projetos para operações de leitura/escrita.
+
+### Projetos de propriedade do usuário
+
+Se seu projeto for de propriedade do usuário, use um PAT e armazene-o como um segredo do repositório.
+
+- Use um [PAT clássico](https://github.com/settings/tokens/new).
+- Escopos necessários:
+  - `project`
+  - `repo` (se repositórios privados estiverem envolvidos)
+
+### Projetos de propriedade da organização
+
+Se seu projeto for de propriedade da organização, use um PAT refinado ou um token de GitHub App e armazene-o como um segredo do repositório.
+
+- Use um [PAT refinado](https://github.com/settings/personal-access-tokens/new?name=GH_AW_WRITE_PROJECT_TOKEN&description=GitHub+Agentic+Workflows+-+Projects+authentication&contents=read&issues=read&pull_requests=read).
+- Configure:
+  - Proprietário do recurso: selecione a organização a que este projeto pertence.
+  - Acesso ao repositório: selecione os repositórios que executarão o fluxo de trabalho.
+  - Permissões do repositório: `Contents: Read`, e opcionalmente `Issues: Read` / `Pull requests: Read` (ou `Read and write`).
+  - Permissões da organização: `Projects: Read` (ou `Read and write`).
+
+Você também pode usar um token de GitHub App se sua organização padronizar em autenticação baseada em App.
+Para projetos de organização, certifique-se de que o app tenha permissão **Organization Projects: Read and write**.
+Veja [Usando um GitHub App para Autenticação](/gh-aw/reference/auth/#using-a-github-app-for-authentication).
+
+### Layout de segredo recomendado
+
+Use tokens de leitura e escrita separados para que você possa aplicar o princípio de privilégio mínimo:
+- `GH_AW_READ_PROJECT_TOKEN` para `tools.github` + conjunto de ferramentas `projects`.
+- `GH_AW_WRITE_PROJECT_TOKEN` para escritas de safe-output como `update-project`.
+
+```bash wrap
+gh aw secrets set GH_AW_READ_PROJECT_TOKEN --value "<read-token>"
+gh aw secrets set GH_AW_WRITE_PROJECT_TOKEN --value "<write-token>"
+```
+
+## Como funciona
+
+Uma maneira prática de adotar o ProjectOps é começar com MCP/GitHub analysis somente leitura, então adicionar gradualmente operações de escrita direcionadas à medida que a confiança no fluxo de trabalho e a maturidade da política aumentam.
+
+ProjectOps combina duas camadas de capacidade:
+- **Ferramentas do GitHub (`tools.github` + conjunto de ferramentas `projects`)** para ler e analisar o estado do projeto.
+- **Safe outputs** para operações de escrita controladas, incluindo:
+  - **[`update-project`](/gh-aw/reference/safe-outputs/#project-board-updates-update-project)** — use quando quiser adicionar issues/PRs a um projeto ou atualizar campos (status, prioridade, proprietário, datas, valores customizados).
+  - **[`create-project-status-update`](/gh-aw/reference/safe-outputs/#project-status-updates-create-project-status-update)** — use quando quiser um resumo para stakeholders na aba Updates do projeto (saúde semanal, bloqueadores, riscos, próximas decisões).
+  - **[`create-project`](/gh-aw/reference/safe-outputs/#project-creation-create-project)** — use quando a automação precisa inicializar um novo board para uma iniciativa ou equipe.
+  - **[`add-comment`](/gh-aw/reference/safe-outputs/#comment-creation-add-comment)** — use quando quiser explicar decisões de roteamento ou solicitar informações ausentes na issue/PR de gatilho.
+
+Vamos ver exemplos disso em ação, começando com o [Resumidor de Board de Projeto](#resumidor-de-board-de-projeto) (análise somente leitura), então movendo para operações de escrita controladas com o exemplo [Mantenedor de Board de Projeto](#mantenedor-de-board-de-projeto).
+
+## Exemplos
+
+### Resumidor de Board de Projeto
+
+Vamos começar com um fluxo de trabalho agentico simples que revisa o estado do board do projeto e gera um resumo sem aplicar mudanças.
+
+```aw wrap
+---
+on:
+  schedule: weekly on monday
+permissions:
+  contents: read
+  actions: read
+tools:
+  github:
+    github-token: ${{ secrets.GH_AW_READ_PROJECT_TOKEN }}
+    toolsets: [default, projects]
+---
+
+# Resumidor de Board de Projeto
+
+Revise o [projeto 1](https://github.com/orgs/my-mona-org/projects/1).
+
+Retorne apenas:
+
+- Novo esta semana
+- Bloqueado + por quê
+- Campos obsoletos/inconsistentes
+- Top 3 ações humanas
+
+Somente leitura. Não atualize o projeto.
+```
+
+Nosso board de projeto pode ser assim:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcSet="/gh-aw/images/projectops-read-board_dark.png" />
+  <img alt="Exemplo de board de Projetos do GitHub usado para o Resumidor de Board de Projeto" src="/gh-aw/images/projectops-read-board_light.png" />
+</picture>
+
+A execução do fluxo de trabalho agentico gera um resumo conciso do status do projeto. Podemos encontrá-lo na saída da execução do agente no GitHub Actions:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcSet="/gh-aw/images/projectops-read-summary_dark.png" />
+  <img alt="Saída de resumo do fluxo de trabalho gerada pelo Resumidor de Board de Projeto" src="/gh-aw/images/projectops-read-summary_light.png" />
+</picture>
+
+### Mantenedor de Board de Projeto
+
+Vamos escrever um fluxo de trabalho agentico que aplica mudanças a um board de projeto com base no conteúdo e contexto da issue.
+Este fluxo de trabalho será executado em novas issues, analisará a issue e o estado do projeto, e decidirá se adiciona a issue ao board do projeto e como definir campos-chave.
+
+```aw wrap
+---
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+  actions: read
+tools:
+  github:
+    github-token: ${{ secrets.GH_AW_READ_PROJECT_TOKEN }}
+    toolsets: [default, projects]
+safe-outputs:
+  update-project:
+    github-token: ${{ secrets.GH_AW_WRITE_PROJECT_TOKEN }}
+    project: https://github.com/orgs/my-mona-org/projects/1
+    max: 1
+  add-comment:
+    max: 1
+---
+
+# Triagem Inteligente de Issue
+
+Analise cada nova issue neste repositório e decida se ela pertence ao board do projeto.
+
+Defina campos estruturados apenas a partir de valores permitidos:
+- Status: Needs Triage | Proposed | In Progress | Blocked
+- Priority: Low | Medium | High
+- Team: Platform | Docs | Product
+
+Poste um comentário curto na issue explicando sua decisão de roteamento e qualquer incerteza.
+```
+
+Uma vez que este fluxo de trabalho seja compilado e executado, ele triará automaticamente novas issues com operações de escrita controladas para o board do projeto e comentários de issue.
+
+Vamos criar uma nova issue para ver isso em ação:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcSet="/gh-aw/images/projectops-write-issue_dark.png" />
+  <img alt="Saída de resumo do fluxo de trabalho gerada pelo Mantenedor de Board de Projeto" src="/gh-aw/images/projectops-write-issue_light.png" />
+</picture>
+
+O Mantenedor de Board de Projeto analisa o conteúdo e o contexto da issue, então decide adicioná-la ao board do projeto com valores de campo específicos (por exemplo, Status: Proposed, Priority: Medium, Team: Docs).
+Ele também posta um comentário na issue explicando a decisão e qualquer incerteza.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcSet="/gh-aw/images/projectops-write-board_dark.png" />
+  <img alt="Saída de resumo do fluxo de trabalho gerada pelo Mantenedor de Board de Projeto" src="/gh-aw/images/projectops-write-board_light.png" />
+</picture>
+
+## Melhores práticas
+
+Em produção, mantenha o loop simples: a issue chega, o agente classifica e propõe/define campos, safe outputs aplicam escritas permitidas, e humanos revisam mudanças de alto impacto e exceções.
+
+- **Auto-aplique** higiene de baixo risco (adicionar item, definir status/equipe inicial).
+- **Apenas sugestão** de compromissos (mudanças de prioridade/data/iteração).
+- **Sempre limite** o impacto entre equipes ou entre repositórios.
+- Use limites de `max`, listas de permissão e aprovações explícitas para controlar escritas.
+- Mantenha valores de seleção única exatos para evitar desvio de campo.
+- Se você precisar apenas de transições simples baseadas em eventos, prefira [fluxos de trabalho de Projetos do GitHub integrados](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-built-in-automations).
+
+## Documentação relacionada
+
+- **[Autenticação de Token de Projeto](/gh-aw/patterns/project-ops/#autenticação-de-token-de-projeto)**
+- **[Referência de Safe Outputs](/gh-aw/reference/safe-outputs/)**
+- **[Monitoramento com Projetos](/gh-aw/experimental/monitoring-with-projects/)**
+- **[IssueOps](/gh-aw/patterns/issue-ops/)**

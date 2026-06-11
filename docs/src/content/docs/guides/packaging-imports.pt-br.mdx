@@ -1,5 +1,5 @@
 ---
-title: Reutilizando Fluxos de Trabalho
+title: Empacotando Importações
 description: Como reutilizar, adicionar, compartilhar, atualizar e distribuir fluxos de trabalho.
 sidebar:
   order: 2
@@ -14,7 +14,7 @@ Você pode adicionar qualquer fluxo de trabalho existente ao qual tenha acesso a
 Use o comando `gh aw add-wizard` para adicionar um fluxo de trabalho com orientação interativa:
 
 ```bash wrap
-gh aw add-wizard <url-do-fluxo-de-trabalho>
+gh aw add-wizard <workflow-url>
 ```
 
 Por exemplo, para adicionar o fluxo de trabalho `daily-repo-status` do repositório `githubnext/agentics`:
@@ -23,110 +23,110 @@ Por exemplo, para adicionar o fluxo de trabalho `daily-repo-status` do repositó
 # URL completa do GitHub
 gh aw add-wizard https://github.com/githubnext/agentics/blob/main/workflows/daily-repo-status.md
 
-# Forma abreviada (para fluxos de trabalho no diretório de nível superior workflows/)
+# Forma curta (para fluxos de trabalho no diretório workflows/ de nível superior)
 gh aw add-wizard githubnext/agentics/daily-repo-status
 
-# Pular o prompt de chave de API quando um segredo já estiver configurado
+# Pule o prompt de chave de API quando um segredo já estiver configurado
 gh aw add-wizard githubnext/agentics/daily-repo-status --skip-secret
 ```
 
-Isso verifica os requisitos, adiciona o arquivo markdown do fluxo de trabalho ao seu repositório e gera o fluxo de trabalho YAML correspondente. Após adicionar, commite e dê push nas alterações para seu repositório.
+Isso verifica os requisitos, adiciona o arquivo markdown do fluxo de trabalho ao seu repositório e gera o fluxo de trabalho YAML correspondente. Após adicionar, faça commit e push das alterações para o seu repositório.
 
-A flag `--skip-secret` ignora o prompt interativo de chave de API. Use-a quando o segredo necessário (por exemplo, `COPILOT_GITHUB_TOKEN`) já estiver configurado no nível da organização ou do repositório.
+A flag `--skip-secret` ignora o prompt interativo de chave de API. Use-a quando o segredo necessário (ex: `COPILOT_GITHUB_TOKEN`) já estiver configurado no nível da organização ou do repositório.
 
-Para instalação não interativa, use `gh aw add` com versionamento opcional. Por padrão, isso procura no diretório `workflows/`, mas você pode especificar um caminho explícito, se necessário:
+Para instalação não interativa, use `gh aw add` com versionamento opcional. Por padrão, isso procura no diretório `workflows/`, mas você pode especificar um caminho explícito se necessário:
 
 ```bash wrap
-gh aw add githubnext/agentics/ci-doctor              # forma abreviada
+gh aw add githubnext/agentics/ci-doctor              # forma curta
 gh aw add githubnext/agentics/ci-doctor@v1.0.0       # com versão
 gh aw add githubnext/agentics/workflows/ci-doctor.md # caminho explícito
 ```
 
 Use as flags `--name`, `--pr`, `--force`, `--engine` ou `--verbose` para personalizar a instalação. O campo `source` é adicionado automaticamente ao frontmatter do fluxo de trabalho para rastrear a origem e habilitar atualizações.
 
-Ao instalar um fluxo de trabalho, `gh aw add` também busca automaticamente:
+Ao instalar um fluxo de trabalho, o `gh aw add` também busca automaticamente:
 
 - Fluxos de trabalho referenciados na saída segura [`dispatch-workflow`](/gh-aw/reference/safe-outputs/#workflow-dispatch-dispatch-workflow).
-- Arquivos declarados no campo de frontmatter [`resources:`](/gh-aw/reference/frontmatter/#resources-resources) do fluxo de trabalho (fluxos de trabalho complementares, ações personalizadas).
+- Arquivos declarados no campo [`resources:`](/gh-aw/reference/frontmatter/#resources-resources) do frontmatter do fluxo de trabalho (fluxos de trabalho complementares, ações personalizadas).
 
 > [!NOTE]
-> Verifique cuidadosamente se o fluxo de trabalho vem de uma fonte confiável e é apropriado para seu uso em seu repositório. Revise o conteúdo do fluxo de trabalho e entenda o que ele faz antes de adicioná-lo ao seu repositório.
+> Verifique cuidadosamente se o fluxo de trabalho vem de uma fonte confiável e se é apropriado para seu uso no seu repositório. Revise o conteúdo do fluxo de trabalho e entenda o que ele faz antes de adicioná-lo ao seu repositório.
 
 > [!NOTE]
-> Fluxos de trabalho marcados com `private: true` em seu frontmatter não podem ser adicionados a outros repositórios. Tentar fazer isso falhará com um erro. Veja [Fluxos de Trabalho Privados](/gh-aw/reference/frontmatter/#private-workflows-private) para detalhes.
+> Fluxos de trabalho marcados com `private: true` em seu frontmatter não podem ser adicionados a outros repositórios. Tentar fazer isso resultará em erro. Veja [Fluxos de Trabalho Privados](/gh-aw/reference/frontmatter/#private-workflows-private) para detalhes.
 
 ## Usando um Agente para Importar e Adaptar um Fluxo de Trabalho
 
-Você pode usar um agente de codificação para importar um fluxo de trabalho de outro repositório e adaptá-lo para o seu próprio. O agente lê o fluxo de trabalho de origem, personaliza a configuração específica do repositório (labels, atribuídos, nomes de branch, permissões) e configura o repositório — incluindo inicialização, se necessário.
+Você pode usar um agente de codificação para importar um fluxo de trabalho de outro repositório e adaptá-lo para o seu. O agente lê o fluxo de trabalho de origem, personaliza a configuração específica do repositório (labels, atribuídos, nomes de branch, permissões) e configura o repositório — incluindo a inicialização, se necessário.
 
 > [!TIP]
-> Use esta abordagem quando desejar personalizar significativamente um fluxo de trabalho antes de usá-lo. Para importações diretas sem modificação, use [`gh aw add`](#adicionando-fluxos-de-trabalho) ou [`gh aw add-wizard`](#adicionando-fluxos-de-trabalho) em vez disso.
+> Use esta abordagem quando quiser personalizar significativamente um fluxo de trabalho antes de usá-lo. Para importações diretas sem modificação, use [`gh aw add`](#adicionando-fluxos-de-trabalho) ou [`gh aw add-wizard`](#adicionando-fluxos-de-trabalho) em vez disso.
 
 ### Interface Web do GitHub
 
-**Se você tiver acesso ao GitHub Copilot**, use um destes prompts em seu repositório para importar e adaptar um fluxo de trabalho de outro repo. Cada prompt também inicializa o repositório para GitHub Agentic Workflows caso ele ainda não tenha sido configurado.
+**Se você tiver acesso ao GitHub Copilot**, use um desses prompts em seu repositório para importar e adaptar um fluxo de trabalho de outro repositório. Cada prompt também inicializa o repositório para o GitHub Agentic Workflows, caso ainda não tenha sido configurado.
 
 <Tabs>
   <TabItem label="Relatório de Status Diário">
     ```markdown wrap
     Inicialize este repositório para GitHub Agentic Workflows usando https://raw.githubusercontent.com/github/gh-aw/main/install.md
 
-    Em seguida, importe e adapte o fluxo de trabalho daily-repo-status do githubnext/agentics. A fonte está em https://github.com/githubnext/agentics/blob/main/workflows/daily-repo-status.md. Adapte quaisquer labels, referências de equipe e formato de saída para atender a este repositório.
+    Em seguida, importe e adapte o fluxo de trabalho daily-repo-status de githubnext/agentics. A fonte está em https://github.com/githubnext/agentics/blob/main/workflows/daily-repo-status.md. Adapte quaisquer labels, referências de equipe e formato de saída para atender a este repositório.
     ```
   </TabItem>
-  <TabItem label="Triagem de Issue">
+  <TabItem label="Triagem de Issues">
     ```markdown wrap
     Inicialize este repositório para GitHub Agentic Workflows usando https://raw.githubusercontent.com/github/gh-aw/main/install.md
 
-    Em seguida, importe e adapte um fluxo de trabalho de triagem de issue do github/gh-aw. Encontre um fluxo de trabalho de triagem de issue adequado nesse repositório e adapte-o: atualize os labels, a lógica de atribuídos e quaisquer regras específicas do repositório para corresponder às convenções deste projeto.
+    Em seguida, importe e adapte um fluxo de trabalho de triagem de issue de github/gh-aw. Encontre um fluxo de trabalho de triagem de issue adequado nesse repositório e adapte-o: atualize os labels, lógica de atribuição e quaisquer regras específicas do repositório para corresponder às convenções deste projeto.
     ```
   </TabItem>
   <TabItem label="CI Doctor">
     ```markdown wrap
     Inicialize este repositório para GitHub Agentic Workflows usando https://raw.githubusercontent.com/github/gh-aw/main/install.md
 
-    Em seguida, importe e adapte o fluxo de trabalho CI Doctor do githubnext/agentics. A fonte está em https://github.com/githubnext/agentics/blob/main/workflows/ci-doctor.md. Adapte o fluxo de trabalho para corresponder à configuração de CI, nomenclatura de branch e convenções de rotulagem de issue deste repositório.
+    Em seguida, importe e adapte o fluxo de trabalho CI Doctor de githubnext/agentics. A fonte está em https://github.com/githubnext/agentics/blob/main/workflows/ci-doctor.md. Adapte o fluxo de trabalho para corresponder à configuração de CI, nomes de branch e convenções de rotulagem de issue deste repositório.
     ```
   </TabItem>
 </Tabs>
 
 > [!TIP]
-> Na primeira execução em um novo repositório, o fluxo de trabalho pode falhar porque os segredos ainda não estão configurados.
-> O fluxo de trabalho agentico deve detectar tokens ausentes e abrir uma issue com instruções de configuração.
+> Na primeira execução em um novo repositório, o fluxo de trabalho pode falhar porque os segredos ainda não foram configurados.
+> O fluxo de trabalho agêntico deve detectar tokens ausentes e abrir uma issue com instruções de configuração.
 
 ### Agente de Codificação
 
-Siga estes passos para importar e adaptar um fluxo de trabalho usando VSCode, Claude, Codex ou Copilot em seu terminal.
+Siga estas etapas para importar e adaptar um fluxo de trabalho usando VSCode, Claude, Codex ou Copilot no seu terminal.
 
 1. **Inicie seu agente de codificação** no contexto do seu repositório.
 
-2. **Insira o seguinte prompt**, substituindo `FONTE_FLUXO_TRABALHO`, `DONO` e `REPO` pelo fluxo de trabalho que você deseja importar:
+2. **Insira o seguinte prompt**, substituindo `SOURCE_WORKFLOW`, `OWNER` e `REPO` pelo fluxo de trabalho que você deseja importar:
 
    ```text wrap
    Inicialize este repositório para GitHub Agentic Workflows usando https://raw.githubusercontent.com/github/gh-aw/main/install.md
 
-   Em seguida, importe e adapte o fluxo de trabalho FONTE_FLUXO_TRABALHO de DONO/REPO. A fonte está em https://github.com/DONO/REPO/blob/main/workflows/FONTE_FLUXO_TRABALHO.md.
+   Em seguida, importe e adapte o fluxo de trabalho SOURCE_WORKFLOW de OWNER/REPO. A fonte está em https://github.com/OWNER/REPO/blob/main/workflows/SOURCE_WORKFLOW.md.
 
-   Adapte o fluxo de trabalho para este repositório: atualize quaisquer labels, atribuídos, nomes de branch e permissões para corresponder à estrutura deste projeto. Mantenha o propósito e a lógica geral do fluxo de trabalho intactos.
+   Adapte o fluxo de trabalho para este repositório: atualize quaisquer labels, atribuídos, nomes de branch e permissões para corresponder à estrutura deste projeto. Mantenha o propósito geral e a lógica do fluxo de trabalho intactos.
    ```
 
-   Você pode adicionar tanto contexto extra, restrições ou objetivos de personalização após a última linha quanto precisar.
+   Você pode adicionar o quanto de contexto extra, restrições ou objetivos de personalização após a última linha conforme precisar.
 
-3. **Configure os segredos necessários** caso ainda não o tenha feito. Veja [Engines](/gh-aw/reference/engines/) para os segredos que sua engine escolhida requer.
+3. **Configure segredos necessários** se você ainda não o fez. Veja [Motores](/gh-aw/reference/engines/) para os segredos que o motor escolhido requer.
 
-Após o agente terminar, revise o fluxo de trabalho adaptado, mergeie o pull request e dispare uma execução a partir da aba Actions ou com `gh aw run`.
+Após o agente terminar, revise o fluxo de trabalho adaptado, mescle o pull request e dispare uma execução a partir da aba Actions ou com `gh aw run`.
 
 ## Atualizando Fluxos de Trabalho
 
-Ao adicionar um fluxo de trabalho, uma entrada de rastreamento `source:` lembra de onde ele veio. Você pode manter fluxos de trabalho sincronizados com seus repositórios de origem:
+Ao adicionar um fluxo de trabalho, uma entrada `source:` de rastreamento lembra de onde ele veio. Você pode manter os fluxos de trabalho sincronizados com seus repositórios de origem:
 
 ```bash wrap
 gh aw update                           # atualizar todos os fluxos de trabalho
 gh aw update ci-doctor                 # atualizar fluxo de trabalho específico
-gh aw update ci-doctor issue-triage    # atualizar múltiplos
+gh aw update ci-doctor issue-triage    # atualizar vários
 ```
 
-Use as flags `--major`, `--force`, `--no-merge`, `--engine` ou `--verbose` para controlar o comportamento da atualização. Versões semânticas (por exemplo, `v1.2.3`) atualizam para a última versão compatível dentro da mesma versão maior. Referências de branch atualizam para o último commit. Referências de SHA atualizam para o último commit no branch padrão. As atualizações usam merge de 3 vias (3-way merge) por padrão para preservar alterações locais; use `--no-merge` para substituir pela versão upstream. Quando ocorrerem conflitos de merge, resolva manualmente os marcadores de conflito e execute `gh aw compile`.
+Use as flags `--major`, `--force`, `--no-merge`, `--engine` ou `--verbose` para controlar o comportamento da atualização. Versões semânticas (ex: `v1.2.3`) atualizam para a última versão compatível dentro da mesma versão principal. Referências de branch atualizam para o último commit. Referências de SHA atualizam para o último commit na branch padrão. As atualizações usam merge de 3 vias por padrão para preservar alterações locais; use `--no-merge` para substituir pela versão upstream. Quando ocorrerem conflitos de merge, resolva manualmente os marcadores de conflito e execute `gh aw compile`.
 
 ## Importações
 
@@ -137,21 +137,21 @@ Importe componentes reutilizáveis usando o campo `imports:` no frontmatter. Os 
 on: issues
 engine: copilot
 imports:
-  - shared/ferramentas-comuns.md
-  - shared/configuracao-seguranca.md
+  - shared/common-tools.md
+  - shared/security-setup.md
   - shared/mcp/tavily.md
 ---
 ```
 
-Durante o `gh aw add`, as importações são expandidas para rastrear o repositório de origem (por exemplo, `shared/ferramentas-comuns.md` torna-se `githubnext/agentics/shared/ferramentas-comuns.md@abc123def`).
+Durante o `gh aw add`, as importações são expandidas para rastrear o repositório de origem (ex: `shared/common-tools.md` torna-se `githubnext/agentics/shared/common-tools.md@abc123def`).
 
-Importações remotas são automaticamente cacheadas em `.github/aw/imports/` por SHA de commit. Isso permite a compilação offline do fluxo de trabalho uma vez que as importações tenham sido baixadas. O cache é compartilhado entre diferentes refs que apontam para o mesmo commit, reduzindo downloads redundantes.
+Importações remotas são automaticamente armazenadas em cache em `.github/aw/imports/` por SHA de commit. Isso permite a compilação de fluxo de trabalho offline após o download das importações. O cache é compartilhado entre diferentes refs que apontam para o mesmo commit, reduzindo downloads redundantes.
 
 Veja [Referência de Importações](/gh-aw/reference/imports/) para formatos de caminho, semântica de merge e comportamento específico de campo.
 
 ## Importando Arquivos de Agente
 
-Arquivos de agente fornecem instruções e comportamento de IA especializados. Veja [Importando Arquivos de Agente Copilot](/gh-aw/reference/copilot-custom-agents/) para detalhes sobre como criar e importar arquivos de agente de repositórios externos.
+Arquivos de agente fornecem instruções e comportamentos de IA especializados. Veja [Importando Arquivos de Agente Copilot](/gh-aw/reference/copilot-custom-agents/) para detalhes sobre como criar e importar arquivos de agente de repositórios externos.
 
 ## Exemplo: Fluxo de Trabalho Modular com Importações
 
@@ -169,7 +169,7 @@ network:
 ---
 ```
 
-Referencie-o em seu fluxo de trabalho para incluir o servidor MCP Tavily junto com outras ferramentas:
+Referencie-o no seu fluxo de trabalho para incluir o servidor MCP Tavily junto com outras ferramentas:
 
 ```yaml wrap
 ---
