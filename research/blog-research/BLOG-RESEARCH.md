@@ -3,7 +3,8 @@
 Comprehensive research findings for workflows featured in the "Meet the Workflows" blog series.
 
 **Research Date**: February 6, 2026
-**Data Sources**: 
+**Data Sources**:
+
 - ISSUES.json (15MB, 10,000+ issues from github/gh-aw)
 - PRS.json (28MB, 10,000+ PRs from github/gh-aw)
 - DISCUSSIONS_ALL.json (1,000+ discussions)
