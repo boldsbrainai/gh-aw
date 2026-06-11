@@ -5,9 +5,9 @@ sidebar:
   badge: { text: 'Testing', variant: 'tip' }
 ---
 
-O TrialOps utiliza repositórios de teste temporários para validar e iterar com segurança em fluxos de trabalho antes da implantação em repositórios de destino. O comando `trial` cria repositórios privados isolados onde os fluxos de trabalho executam e capturam saídas seguras (issues, PRs, comentários) sem afetar sua base de código real.
+O TrialOps usa repositórios de teste temporários para validar e iterar com segurança em fluxos de trabalho antes da implantação em repositórios de destino. O comando `trial` cria repositórios privados isolados onde os fluxos de trabalho são executados e capturam saídas seguras (issues, PRs, comentários) sem afetar sua base de código real.
 
-## Como o Modo Trial Funciona
+## Como o modo Trial funciona
 
 ```bash
 gh aw trial githubnext/agentics/weekly-research
@@ -15,33 +15,33 @@ gh aw trial githubnext/agentics/weekly-research
 
 A CLI cria um repositório privado temporário (padrão: `gh-aw-trial`), instala e executa o fluxo de trabalho via `workflow_dispatch`. Os resultados são salvos localmente em `trials/weekly-research.DATETIME-ID.json`, no repositório de teste no GitHub e resumidos no console.
 
-## Modos de Repositório
+## Modos de repositório
 
 | Modo | Flag | Descrição |
 |------|------|-------------|
 | Padrão | (nenhum) | `github.repository` aponta para seu repo; saídas vão para o repo de teste |
-| Direto | `--repo meuorg/repo-teste` | Executa no repo especificado; cria issues/PRs reais lá |
-| Lógico | `--logical-repo meuorg/repo-destino` | Simula a execução contra o repo especificado; saídas no repo de teste |
-| Clone | `--clone-repo meuorg/repo-real` | Clona o conteúdo do repo para que os fluxos de trabalho possam analisar o código real |
+| Direto | `--repo myorg/test-repo` | Executa no repo especificado; cria issues/PRs reais lá |
+| Lógico | `--logical-repo myorg/target-repo` | Simula a execução contra o repo especificado; saídas no repo de teste |
+| Clone | `--clone-repo myorg/real-repo` | Clona o conteúdo do repo para que os fluxos de trabalho possam analisar o código real |
 
-## Uso Básico
+## Uso básico
 
-### Modo Dry-Run (Simulação)
+### Modo de simulação (Dry-Run)
 
 Visualize o que aconteceria sem executar fluxos de trabalho ou criar repositórios:
 
 ```bash
-gh aw trial ./meu-fluxo-de-trabalho.md --dry-run
+gh aw trial ./my-workflow.md --dry-run
 ```
 
-### Fluxo de Trabalho Único
+### Fluxo de trabalho único
 
 ```bash
 gh aw trial githubnext/agentics/weekly-research  # Do GitHub
-gh aw trial ./meu-fluxo-de-trabalho.md           # Arquivo local
+gh aw trial ./my-workflow.md                      # Arquivo local
 ```
 
-### Múltiplos Fluxos de Trabalho
+### Vários fluxos de trabalho
 
 Compare fluxos de trabalho lado a lado com resultados combinados:
 
@@ -49,24 +49,24 @@ Compare fluxos de trabalho lado a lado com resultados combinados:
 gh aw trial githubnext/agentics/daily-plan githubnext/agentics/weekly-research
 ```
 
-Saídas: arquivos de resultados individuais mais `trials/combined-results.DATETIME.json`.
+Saídas: arquivos de resultado individuais mais `trials/combined-results.DATETIME.json`.
 
-### Ensaios Repetidos
+### Tentativas repetidas
 
-Teste a consistência executando múltiplas vezes:
-
-```bash
-gh aw trial githubnext/agentics/meu-fluxo-de-trabalho --repeat 3
-```
-
-### Repositório de Teste Personalizado
+Teste a consistência executando várias vezes:
 
 ```bash
-gh aw trial githubnext/agentics/meu-fluxo-de-trabalho --host-repo meu-teste-personalizado
-gh aw trial ./meu-fluxo-de-trabalho.md --host-repo .  # Use o repo atual
+gh aw trial githubnext/agentics/my-workflow --repeat 3
 ```
 
-## Padrões Avançados
+### Repositório de teste personalizado
+
+```bash
+gh aw trial githubnext/agentics/my-workflow --host-repo my-custom-trial
+gh aw trial ./my-workflow.md --host-repo .  # Usar repo atual
+```
+
+## Padrões avançados
 
 ### Contexto de Issue
 
@@ -74,28 +74,28 @@ Forneça contexto de issue para fluxos de trabalho disparados por issue:
 
 ```bash
 gh aw trial githubnext/agentics/triage-workflow \
-  --trigger-context "https://github.com/meuorg/repo/issues/123"
+  --trigger-context "https://github.com/myorg/repo/issues/123"
 ```
 
-### Acrescentar Instruções
+### Acrescentar instruções
 
 Teste respostas de fluxo de trabalho a restrições adicionais sem modificar a fonte:
 
 ```bash
-gh aw trial githubnext/agentics/meu-fluxo-de-trabalho \
+gh aw trial githubnext/agentics/my-workflow \
   --append "Foque em problemas de segurança e crie relatórios detalhados."
 ```
 
-### Opções de Limpeza
+### Opções de limpeza
 
 ```bash
-gh aw trial ./meu-fluxo-de-trabalho.md --delete-host-repo-after        # Deletar após conclusão
-gh aw trial ./meu-fluxo-de-trabalho.md --force-delete-host-repo-before # Limpar antes de executar
+gh aw trial ./my-workflow.md --delete-host-repo-after        # Excluir após a conclusão
+gh aw trial ./my-workflow.md --force-delete-host-repo-before # Limpar antes de executar
 ```
 
-## Entendendo os Resultados do Trial
+## Entendendo os resultados do Trial
 
-Os resultados são salvos em `trials/*.json` com execuções de fluxo de trabalho, issues, PRs e comentários visíveis nas abas Actions e Issues do repositório de teste.
+Os resultados são salvos em `trials/*.json` com as execuções do fluxo de trabalho, issues, PRs e comentários visíveis nas abas de Actions e Issues do repositório de teste.
 
 **Estrutura do arquivo de resultado:**
 
@@ -106,8 +106,8 @@ Os resultados são salvos em `trials/*.json` com execuções de fluxo de trabalh
   "safe_outputs": {
     "issues_created": [{
       "number": 5,
-      "title": "Pesquisar tendências de computação quântica",
-      "url": "https://github.com/usuario/gh-aw-trial/issues/5"
+      "title": "Research quantum computing trends",
+      "url": "https://github.com/user/gh-aw-trial/issues/5"
     }]
   },
   "agentic_run_info": {
@@ -117,30 +117,30 @@ Os resultados são salvos em `trials/*.json` com execuções de fluxo de trabalh
 }
 ```
 
-**Indicadores de sucesso:** Checkmark verde, saídas esperadas criadas, sem erros nos logs.
+**Indicadores de sucesso:** Check verde, saídas esperadas criadas, sem erros nos logs.
 
 **Problemas comuns:**
 
-- **Falha no disparo do fluxo de trabalho (workflow dispatch)** - Adicione o gatilho `workflow_dispatch`
+- **Falha no workflow dispatch** - Adicione o gatilho `workflow_dispatch`
 - **Sem saídas seguras** - Configure saídas seguras no fluxo de trabalho
 - **Erros de permissão** - Verifique as chaves de API
-- **Tempo limite (Timeout)** - Use `--timeout 60` (minutos)
+- **Timeout** - Use `--timeout 60` (minutos)
 
-## Comparando Múltiplos Fluxos de Trabalho
+## Comparando vários fluxos de trabalho
 
-Execute múltiplos fluxos de trabalho para comparar qualidade, quantidade, desempenho e consistência:
+Execute vários fluxos de trabalho para comparar qualidade, quantidade, desempenho e consistência:
 
 ```bash
 gh aw trial v1.md v2.md v3.md --repeat 2
 cat trials/combined-results.*.json | jq '.results[] | {workflow: .workflow_name, issues: .safe_outputs.issues_created | length}'
 ```
 
-## Documentação Relacionada
+## Documentação relacionada
 
-- [SideRepoOps](/gh-aw/patterns/side-repo-ops/) - Executar fluxos de trabalho de repositórios separados
-- [MultiRepoOps](/gh-aw/patterns/multi-repo-ops/) - Coordenar através de múltiplos repositórios
-- [Orquestração](/gh-aw/patterns/orchestration/) - Orquestrar iniciativas de múltiplas issues
-- [Comandos da CLI](/gh-aw/setup/cli/) - Referência completa da CLI
-- [Referência de Saídas Seguras](/gh-aw/reference/safe-outputs/) - Opções de configuração
-- [Gatilhos de Fluxo de Trabalho](/gh-aw/reference/triggers/) - Incluindo workflow_dispatch
-- [Melhores Práticas de Segurança](/gh-aw/introduction/architecture/) - Autenticação e segurança
+- [SideRepoOps](/gh-aw/patterns/side-repo-ops/) - Execute fluxos de trabalho de repositórios separados
+- [MultiRepoOps](/gh-aw/patterns/multi-repo-ops/) - Coordene entre vários repositórios
+- [Orchestration](/gh-aw/patterns/orchestration/) - Orquestre iniciativas de várias issues
+- [CLI Commands](/gh-aw/setup/cli/) - Referência completa da CLI
+- [Safe Outputs Reference](/gh-aw/reference/safe-outputs/) - Opções de configuração
+- [Workflow Triggers](/gh-aw/reference/triggers/) - Incluindo workflow_dispatch
+- [Security Best Practices](/gh-aw/introduction/architecture/) - Autenticação e segurança

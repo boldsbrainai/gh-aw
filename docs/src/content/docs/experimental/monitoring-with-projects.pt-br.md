@@ -1,20 +1,20 @@
 ---
-title: Monitoramento com Projetos
-description: Utilize GitHub Projects + safe-outputs para rastrear e monitorar itens de trabalho e o progresso de fluxos de trabalho.
+title: Monitoramento com Projects
+description: Use o GitHub Projects + safe-outputs para rastrear e monitorar itens de trabalho e o progresso de fluxos de trabalho.
 ---
 
-Use este padrão quando desejar uma “fonte de verdade” durável sobre o que seus fluxos de trabalho agenticos descobriram, decidiram e executaram.
+Use este padrão quando você desejar uma “fonte única da verdade” durável para o que seus fluxos de trabalho agenticos descobriram, decidiram e executaram.
 
 ## O que é este padrão
 
-- **Projetos** são o painel: um quadro do GitHub Projects v2 contém issues/PRs e campos personalizados.
+- **Projects** são o painel: um quadro do GitHub Projects v2 armazena issues/PRs e campos personalizados.
 - **Monitoramento** é o comportamento: fluxos de trabalho adicionam/atualizam itens continuamente e postam atualizações de status periodicamente.
 
 ## Blocos de construção
 
-### 1) Rastrear itens com `update-project`
+### 1) Rastreie itens com `update-project`
 
-Habilite a saída segura (safe output) e aponte-a para a URL do seu projeto:
+Habilite o safe-output e aponte-o para a URL do seu projeto:
 
 ```yaml
 safe-outputs:
@@ -29,9 +29,9 @@ safe-outputs:
 
 Veja a referência completa: [/reference/safe-outputs/#project-board-updates-update-project](/gh-aw/reference/safe-outputs/#project-board-updates-update-project)
 
-### 2) Postar resumos de execução com `create-project-status-update`
+### 2) Poste resumos de execução com `create-project-status-update`
 
-Use atualizações de status de projeto para comunicar o progresso e os próximos passos:
+Use atualizações de status do projeto para comunicar o progresso e os próximos passos:
 
 ```yaml
 safe-outputs:
@@ -41,36 +41,36 @@ safe-outputs:
     github-token: ${{ secrets.GH_AW_PROJECT_GITHUB_TOKEN }}
 ```
 
-Isso é útil para fluxos de trabalho agendados (diários/semanais) ou fluxos de trabalho orquestradores.
+Isso é útil para fluxos de trabalho agendados (diários/semanais) ou fluxos de trabalho de orquestração.
 
 Veja a referência completa: [/reference/safe-outputs/#project-status-updates-create-project-status-update](/gh-aw/reference/safe-outputs/#project-status-updates-create-project-status-update)
 
-### 3) Correlacionar trabalho com um campo de ID de Rastreador (Tracker Id)
+### 3) Correlacione o trabalho com um campo "Tracker Id"
 
-Se desejar correlacionar múltiplas execuções, adicione um campo personalizado como **Tracker Id** (texto) e preencha-o a partir do prompt/saída do seu fluxo de trabalho (por exemplo, um ID de execução, número de issue ou chave de “iniciativa”).
+Se você quiser correlacionar várias execuções, adicione um campo personalizado como **Tracker Id** (texto) e preencha-o a partir do prompt/saída do seu fluxo de trabalho (por exemplo, um ID de execução, número da issue ou chave de "iniciativa").
 
-## Problemas de falha na execução
+## Issues de falha de execução
 
-Quando uma execução de fluxo de trabalho falha, o sistema automaticamente posta uma notificação de falha na issue ou pull request que a disparou. Para rastrear falhas como issues pesquisáveis do GitHub, habilite `create-issue` em `safe-outputs`:
+Quando uma execução de fluxo de trabalho falha, o sistema posta automaticamente uma notificação de falha na issue ou pull request que a disparou. Para rastrear falhas como issues pesquisáveis no GitHub, habilite `create-issue` em `safe-outputs`:
 
-```yaml wrap
+```yaml
 safe-outputs:
   create-issue:
-    title-prefix: "[falhou] "
-    labels: [automacao, falhou]
+    title-prefix: "[falha] "
+    labels: [automacao, falha]
 ```
 
-O corpo da issue inclui o nome do fluxo de trabalho, a URL da execução e o status da falha, facilitando a localização e triagem de falhas recorrentes.
+O corpo da issue inclui o nome do fluxo de trabalho, a URL da execução e o status da falha, facilitando a localização e a triagem de falhas recorrentes.
 
-### Agrupar falhas como sub-issues
+### Agrupando falhas como sub-issues
 
-Quando múltiplas execuções de fluxo de trabalho falham, a opção `group-reports` vincula cada relatório de falha como uma sub-issue sob uma issue pai compartilhada intitulada "[aw] Failed runs". Isso é útil para fluxos de trabalho agendados ou de alta frequência onde as falhas podem se acumular.
+Quando várias execuções de fluxo de trabalho falham, a opção `group-reports` vincula cada relatório de falha como uma sub-issue sob uma issue pai compartilhada intitulada "[aw] Failed runs". Isso é útil para fluxos de trabalho agendados ou de alta frequência, onde as falhas podem se acumular.
 
-```yaml wrap
+```yaml
 safe-outputs:
   create-issue:
-    title-prefix: "[falhou] "
-    labels: [automacao, falhou]
+    title-prefix: "[falha] "
+    labels: [automacao, falha]
   group-reports: true   # Agrupar relatórios de falha sob uma issue pai compartilhada (padrão: false)
 ```
 
@@ -84,54 +84,54 @@ Veja a referência completa: [/reference/safe-outputs/#group-reports-group-repor
 
 ## Relatórios de execução no-op
 
-Quando um agente determina que nenhuma ação é necessária (por exemplo, nenhuma issue foi encontrada), ele gera uma mensagem no-op. Por padrão, essa mensagem é postada como um comentário na issue ou pull request que a disparou, mantendo um registro visível das execuções que intencionalmente não fizeram nada.
+Quando um agente determina que nenhuma ação é necessária (por exemplo, nenhuma issue foi encontrada), ele emite uma mensagem no-op. Por padrão, essa mensagem é postada como um comentário na issue ou pull request que a disparou, mantendo um registro visível das execuções que intencionalmente não fizeram nada.
 
 Para desabilitar a postagem de mensagens no-op como comentários de issue:
 
-```yaml wrap
+```yaml
 safe-outputs:
   create-issue:
   noop:
     report-as-issue: false  # Desabilitar a postagem de mensagens noop como comentários de issue
 ```
 
-As mensagens no-op ainda aparecem no resumo do passo do fluxo de trabalho mesmo quando `report-as-issue` é `false`.
+As mensagens no-op ainda aparecem no resumo da etapa do fluxo de trabalho mesmo quando `report-as-issue` é `false`.
 
 Para desabilitar a saída no-op completamente:
 
-```yaml wrap
+```yaml
 safe-outputs:
   create-issue:
-  noop: false   # Desabilitar saída noop completamente
+  noop: false   # Desabilitar a saída noop completamente
 ```
 
 Veja a referência completa: [/reference/safe-outputs/#no-op-logging-noop](/gh-aw/reference/safe-outputs/#no-op-logging-noop)
 
 ## Monitoramento operacional
 
-Use `gh aw status` para ver quais fluxos de trabalho estão habilitados e seu estado de execução mais recente.
+Use `gh aw status` para ver quais fluxos de trabalho estão habilitados e o estado da sua execução mais recente.
 
-Para uma investigação mais profunda, os comandos de auditoria são a principal ferramenta de monitoramento para fluxos de trabalho agenticos:
+Para investigações mais profundas, os comandos de auditoria são a principal ferramenta de monitoramento para fluxos de trabalho agenticos:
 
 - `gh aw audit <run-id>` — relatório de execução única com uso de ferramentas, falhas de MCP, atividade de firewall e métricas de custo
-- `gh aw audit <run-id-1> <run-id-2>` — compara duas execuções para detectar regressões comportamentais ou novos acessos à rede (passe IDs adicionais para comparar a base contra múltiplas execuções)
+- `gh aw audit <run-id-1> <run-id-2>` — compara duas execuções para detectar regressões comportamentais ou novos acessos à rede (passe IDs adicionais para comparar a base contra várias execuções)
 - `gh aw logs --format markdown [workflow]` — relatório de segurança e desempenho entre execuções para monitoramento de tendências
 
 ```bash
 # Auditar a execução mais recente
 gh aw audit 12345678
 
-# Comparar duas execuções em busca de regressões
+# Comparar duas execuções para regressões
 gh aw audit 12345678 12345679
 
-# Comparar a base contra múltiplas execuções ao mesmo tempo
+# Comparar a base contra várias execuções ao mesmo tempo
 gh aw audit 12345678 12345679 12345680
 
-# Relatório de tendência através das últimas 10 execuções de um fluxo de trabalho
+# Relatório de tendências nas últimas 10 execuções de um fluxo de trabalho
 gh aw logs my-workflow --format markdown --count 10
 ```
 
 > [!TIP]
-> Use `gh aw logs --format markdown` dentro de um agente de fluxo de trabalho agendado para automatizar o monitoramento de tendências e identificar regressões de custo ou segurança sem intervenção manual.
+> Use `gh aw logs --format markdown` dentro de um agente de fluxo de trabalho agendado para automatizar o monitoramento de tendências e detectar regressões de custo ou segurança sem intervenção manual.
 
-Veja [Comandos de Auditoria](/gh-aw/reference/audit/) para documentação completa de flags, e [Referência da CLI](/gh-aw/setup/cli/) para todos os comandos disponíveis.
+Veja [Audit Commands](/gh-aw/reference/audit/) para documentação completa de flags, e [CLI Reference](/gh-aw/setup/cli/) para todos os comandos disponíveis.
