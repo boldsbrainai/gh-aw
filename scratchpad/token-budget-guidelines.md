@@ -168,12 +168,14 @@ Explicit instructions in workflow prompts to reduce token consumption:
 **Engine**: Copilot (gpt-5.1-codex-mini) - max-turns not available
 
 **Previous Configuration:**
+
 - No token budget controls
 - 30-minute timeout
 - No explicit conciseness guidance
 - Runs every 30 minutes (48 runs/day)
 
 **Optimized Configuration:**
+
 - `timeout-minutes: 30` (unchanged — already short)
 - Added `## Token Budget Guidelines` section in prompt:
   - Stop immediately after assignments + comments (or noop)
@@ -183,6 +185,7 @@ Explicit instructions in workflow prompts to reduce token consumption:
   - One tool call per action (assign + comment = 2 calls per issue max)
 
 **Expected Impact:**
+
 - **Token Reduction**: 60-75% (from ~1.99M to ~500K-800K per run)
 - **Quality**: Maintained — assignments and comments unchanged
 - **Runtime**: Maintained at <5 minutes per run
@@ -313,6 +316,7 @@ Explicit instructions in workflow prompts to reduce token consumption:
 - Full test output captured per run
 
 **Optimized Configuration:**
+
 - `timeout-minutes: 30` (unchanged)
 - Added `## Token Budget Guidelines` section in prompt:
   - Reduce batch from 10 to 5 functions per run
@@ -322,11 +326,13 @@ Explicit instructions in workflow prompts to reduce token consumption:
   - No re-read of full cache before appending
 
 **Expected Impact:**
+
 - **Token Reduction**: 45-55% (from ~9.1M to ~4M-5M per run)
 - **Quality**: Maintained — safety checks unchanged, build verification still required
 - **Runtime**: Reduced processing turns
 
 **Budget Target:**
+
 - **Target tokens/run**: 4M–5M
 - **Alert threshold**: >7M tokens
 - **Cost estimate**: $70-87.50 per run
@@ -342,6 +348,7 @@ Explicit instructions in workflow prompts to reduce token consumption:
 **Engine**: Copilot (claude-haiku-4.5) - max-turns not available
 
 **Previous Configuration (runaway — 2026-04-30):**
+
 - No token budget controls
 - 30-minute timeout
 - Unbounded Tier 3 candidate lookups (one `issue_read` per issue, up to hundreds)
@@ -350,6 +357,7 @@ Explicit instructions in workflow prompts to reduce token consumption:
 - 159 turns, 8.7M tokens, 35.6% firewall block rate (88/247)
 
 **Optimized Configuration (2026-04-30):**
+
 - `timeout-minutes: 20` (reduced from 30)
 - Tier 3 candidates capped at **5 per run** in the bash pre-step
 - `README.md` pre-copied to `/tmp/gh-aw/agent/community-data/README_current.md`

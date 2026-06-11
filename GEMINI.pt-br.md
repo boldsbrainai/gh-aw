@@ -3,6 +3,7 @@
 Mandatos fundamentais e contexto para tarefas de engenharia de software no repositório `gh-aw`.
 
 ## Visão Geral do Projeto
+
 `gh-aw` (GitHub Agentic Workflows) é um framework para escrita de fluxos de trabalho (workflows) orientados por IA em linguagem natural (Markdown) e execução segura dentro do GitHub Actions.
 
 - **Linguagem Principal:** Go 1.25.8
@@ -11,6 +12,7 @@ Mandatos fundamentais e contexto para tarefas de engenharia de software no repos
 - **Filosofia de Segurança:** Somente leitura por padrão. Operações de escrita ocorrem através de `safe-outputs` (saídas seguras) sanitizadas. Implementa sandboxing (isolamento), isolamento de rede e aprovações human-in-the-loop (intervenção humana).
 
 ## Arquitetura e Organização de Arquivos
+
 - **`cmd/`**: Pontos de entrada da CLI. `cmd/gh-aw` é o binário principal.
 - **`pkg/workflow/`**: Lógica central do compilador.
     - `create_*.go`: Manipuladores para criação de entidades do GitHub (Safe Outputs).
@@ -25,6 +27,7 @@ Mandatos fundamentais e contexto para tarefas de engenharia de software no repos
 - **`docs/`**: Projeto de documentação baseado em Astro.
 
 ## Comandos Principais de Desenvolvimento
+
 | Tarefa | Comando |
 | :--- | :--- |
 | **Build do Binário** | `make build` |
@@ -42,6 +45,7 @@ Mandatos fundamentais e contexto para tarefas de engenharia de software no repos
 ## Padrões de Engenharia e Convenções
 
 ### Estilo de Codificação
+
 - **Padrões Go:** Aderir aos idiomas padrão de Go e às regras do `golangci-lint`.
 - **Saída da CLI:** Toda saída voltada ao usuário deve ir para **stderr** (exceto JSON bruto). Use `pkg/console` para formatação estilizada.
 - **Tratamento de Erros:** Sempre envolva erros com contexto: `fmt.Errorf(\"failed to [action]: %w\", err)`.
@@ -49,21 +53,25 @@ Mandatos fundamentais e contexto para tarefas de engenharia de software no repos
 - **Nomenclatura:** Manipuladores de saída segura seguem `create_<entity>.go`. Motores seguem `<engine>_engine.go`.
 
 ### Práticas de Teste
+
 - **Testes Baseados em Tabela (Table-Driven):** Preferencial para toda a lógica e comandos da CLI.
 - **Arquivos Golden:** Usados para saída de console e serialização complexa. Use `go test ./... -update` para atualizar.
 - **Colocação (Collocation):** Testes devem residir ao lado do código que testam (`*_test.go`).
 - **Testes Wasm:** Testes golden específicos para Wasm existem em `pkg/workflow`.
 
 ### Compilação de Workflow
+
 - **Workflows Autônomos (Standalone):** Devem ter um gatilho (trigger) `on:`.
 - **Componentes Compartilhados:** Encontrados em `.github/workflows/shared/`. Estes carecem de gatilhos e são importados. Não tente compilá-los diretamente.
 - **Recompilação:** Sempre execute `make recompile` após modificar a lógica do compilador para garantir que os arquivos `.lock.yml` estejam atualizados.
 
 ### Segurança
+
 - **Safe Outputs:** Nunca implemente operações de escrita direta na lógica do motor. Use o padrão `safe-outputs`.
 - **Credenciais:** Evite rigorosamente registrar ou expor segredos. Use `pkg/logger`, que está configurado para saída segura.
 
 ## Processo de Mudança
+
 - **Versionamento:** Gerenciado via Changesets (diretório `.changeset/`).
 - **Commits:** Commits convencionais são recomendados.
 - **Validação:** `make agent-finish` é a verificação final obrigatória para qualquer mudança não trivial.

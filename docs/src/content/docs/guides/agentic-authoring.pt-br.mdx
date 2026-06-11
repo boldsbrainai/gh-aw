@@ -1,0 +1,95 @@
+---
+title: Autoria Agentica
+description: Técnicas mais avançadas para criar fluxos de trabalho agenticos usando agentes.
+sidebar:
+  order: 1
+---
+import CopyEntireFileButton from '../../../components/CopyEntireFileButton.astro';
+import Video from '../../../components/Video.astro';
+
+Usar nosso agente de autoria é uma maneira eficaz de criar, depurar e otimizar seus fluxos de trabalho agenticos.
+Esta é uma continuação da página [Criar Fluxos de Trabalho Agenticos](/gh-aw/setup/creating-workflows/).
+
+## Configurando seu Repositório
+
+Para habilitar a experiência de autoria agentica, você precisará configurar seu repositório com alguns arquivos. Execute este prompt ou o comando `init`.
+
+```text wrap
+Inicialize este repositório para GitHub Agentic Workflows usando https://raw.githubusercontent.com/github/gh-aw/main/install.md
+```
+ou
+```
+gh aw init
+```
+
+Certifique-se de commitar e dar push nos arquivos para seu repositório.
+
+## Usando a Interface Web do GitHub
+
+**Se você tiver acesso ao GitHub Copilot**, você pode criar e editar fluxos de trabalho agenticos diretamente da interface web. Embora não seja interativo, é útil para transformar rapidamente uma ideia em um fluxo de trabalho funcional. Para uma experiência mais interativa, use um agente de codificação (veja abaixo).
+
+<Video
+   src="/gh-aw/videos/create-workflow-on-github.mp4"
+   caption="Crie um fluxo de trabalho agentico a partir da interface web do GitHub"
+   aspectRatio="16:9"
+   thumbnail="/gh-aw/videos/create-workflow-on-github.png"
+/>
+
+> [!TIP]
+> Na primeira execução em um novo repositório, o fluxo de trabalho certamente falhará porque os segredos não estão configurados.
+> O fluxo de trabalho agentico deve detectar os tokens ausentes e criar uma issue com instruções sobre como configurá-los.
+
+## Remixando Fluxos de Trabalho Entre Repositórios
+
+Quando precisar adaptar um fluxo de trabalho existente de outro repositório, use o `create-agentic-agent` para realizar a migração assistida por IA. O agente analisa o fluxo de trabalho de origem, identifica dependências, adapta a configuração para seu repositório e valida o resultado. Isso é útil para fazer fork de fluxos de trabalho como pontos de partida ou migrações pontuais que exigem mudanças substanciais. Para atualizações sincronizadas entre repositórios, use [Reutilizando Fluxos de Trabalho](/gh-aw/guides/packaging-imports/) com `gh aw add` em vez disso.
+
+Exemplo de prompt para migração:
+```text wrap
+Migre o fluxo de trabalho release.md do github/gh-aw para este repositório.
+Adapte as permissões e referências específicas do repositório para nossa estrutura.
+```
+
+## Depurando Fluxos de Trabalho
+
+Use o agente de fluxos de trabalho agenticos para diagnosticar e corrigir execuções de fluxo de trabalho com falha.
+
+### Através do Copilot
+
+Se o seu repositório estiver [configurado para autoria agentica](#configurando-seu-repositorio), use o agente `agentic-workflows` no Copilot Chat:
+
+```text wrap
+/agent agentic-workflows debug https://github.com/DONO/REPO/actions/runs/RUN_ID
+```
+
+O agente audita a execução, identifica a causa raiz (ferramentas ausentes, erros de permissão, bloqueios de rede) e sugere correções direcionadas.
+
+> [!TIP]
+> Copie este prompt, substitua `DONO`, `REPO` e `RUN_ID` pelos seus valores e cole no Copilot Chat. Você pode encontrar a URL da execução na página de execução do GitHub Actions.
+
+### Autônomo (com URL)
+
+Para qualquer assistente de IA ou agente de codificação, compartilhe a URL para o prompt de depuração autônomo:
+
+```text wrap
+Depure esta execução de fluxo de trabalho usando https://raw.githubusercontent.com/github/gh-aw/main/debug.md
+
+A execução do fluxo de trabalho com falha está em https://github.com/DONO/REPO/actions/runs/RUN_ID
+```
+
+<CopyEntireFileButton filePath="https://raw.githubusercontent.com/github/gh-aw/main/debug.md" label="Copiar instruções de depuração" />
+
+O arquivo `debug.md` é um prompt autônomo. O agente o busca e segue as instruções para instalar a CLI `gh aw`, analisar os logs, aplicar correções e abrir um pull request com as alterações.
+
+## Técnicas Avançadas
+
+### Planejador (Planner)
+
+Se preferir usar um chatbot de IA para criar fluxos de trabalho agenticos, use as [instruções do agentic-chat](https://raw.githubusercontent.com/github/gh-aw/main/.github/aw/agentic-chat.md) com qualquer IA conversacional para criar descrições de tarefas claras e acionáveis. <CopyEntireFileButton filePath="https://raw.githubusercontent.com/github/gh-aw/main/.github/aw/agentic-chat.md" label="Copiar instruções do agentic-chat" />
+
+Copie as instruções, cole em seu chat de IA, e então descreva seu objetivo de fluxo de trabalho. O assistente fará perguntas de esclarecimento e gerará uma descrição de tarefa estruturada (envolta em 5 crases) pronta para usar em seu fluxo de trabalho. Ele foca no que precisa ser feito em vez de como, tornando-o ideal para criar especificações que agentes de codificação podem executar.
+
+### Ditado (Dictation)
+
+Ao criar fluxos de trabalho agenticos usando fala-para-texto, use o [prompt de instruções de ditado](https://raw.githubusercontent.com/github/gh-aw/main/DICTATION.md) para corrigir incompatibilidades de terminologia e problemas de formatação. <CopyEntireFileButton filePath="https://raw.githubusercontent.com/github/gh-aw/main/DICTATION.md" label="Copiar instruções de ditado" />
+
+Este prompt corrige a terminologia (por exemplo, "ghaw" → "gh-aw", "work flow" → "workflow"), transforma a fala casual em descrições de tarefas imperativas, remove palavras de preenchimento e adiciona contexto implícito. Carregue-o em seu assistente de IA antes ou depois de ditar.

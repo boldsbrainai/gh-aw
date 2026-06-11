@@ -11,6 +11,7 @@ The workflow complexity reduction initiative addresses workflows that have grown
 ### 1. Extract Common Functionality
 
 Move reusable components to `.github/workflows/shared/` directory:
+
 - **Data collection modules**: Pre-fetch and prepare data (e.g., `copilot-session-data-fetch.md`)
 - **Analysis strategies**: Reusable analytical patterns (e.g., `session-analysis-strategies.md`)
 - **Visualization modules**: Chart generation and data visualization (e.g., `session-analysis-charts.md`)
