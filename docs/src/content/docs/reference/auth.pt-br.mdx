@@ -1,0 +1,279 @@
+---
+title: Autenticação
+description: Referência abrangente para secrets do GitHub Actions, tokens do GitHub e GitHub Apps no gh-aw
+sidebar:
+  order: 650
+disable-agentic-editing: true
+---
+
+import Video from '../../../components/Video.astro';
+
+Esta página descreve as configurações de autenticação para GitHub Agentic Workflows.
+
+## Qual secret eu preciso?
+
+Configure um secret do GitHub Actions por motor antes de executar seu primeiro fluxo de trabalho:
+
+| Motor | Secret obrigatório | Alternativa | Notas |
+|--------|----------------|-------------|-------|
+| **Copilot** (padrão) | [`COPILOT_GITHUB_TOKEN`](#copilot_github_token) | — | PAT granular com permissão de Copilot Requests |
+| **Claude** | [`ANTHROPIC_API_KEY`](#anthropic_api_key) | — | Chave de API do Anthropic Console |
+| **Codex** | [`OPENAI_API_KEY`](#openai_api_key) | `CODEX_API_KEY` | O runtime usa `CODEX_API_KEY` se presente, caso contrário usa `OPENAI_API_KEY` |
+| **Gemini** | [`GEMINI_API_KEY`](#gemini_api_key) | — | Chave de API do Google AI Studio |
+
+A maioria dos fluxos de trabalho será executada sem secrets adicionais ou autenticação adicional além deste único secret do motor.
+
+## Autenticação adicional
+
+Alguns fluxos de trabalho precisam de autenticação adicional. Podem ser tokens adicionados como secrets e referenciados no seu fluxo de trabalho, ou GitHub App pode ser usado.
+
+Fluxos de trabalho que usam as seguintes operações de **leitura** do GitHub exigem [Autenticação Adicional para Ferramentas do GitHub](/gh-aw/reference/github-tools/#additional-authentication-for-github-tools), por meio de um secret contendo um PAT ou GitHub App:
+- **Leitura de vários repositórios**
+- **Leitura de projetos**
+- **Ferramentas do GitHub em modo remoto**
+
+Fluxos de trabalho que usam os seguintes recursos de [Safe Outputs](/gh-aw/reference/safe-outputs/) exigem autenticação adicional, por meio de um secret contendo um PAT ou GitHub App:
+- [**Safe outputs escrevendo entre repositórios**](/gh-aw/reference/safe-outputs/#cross-repository-operations)
+- [**Safe outputs atribuindo o agente de codificação Copilot a issues/PRs**](/gh-aw/reference/assign-to-copilot/)
+- [**Safe outputs atualizando GitHub Projects**](/gh-aw/patterns/project-ops/#project-token-authentication)
+- [**Safe outputs acionando CI em PRs**](/gh-aw/reference/triggering-ci/)
+
+Fluxos de trabalho usando ferramentas MCP personalizadas ou safe outputs podem exigir autenticação adicional dependendo das operações realizadas.
+
+## Como adicionar um secret do GitHub Actions ao meu repositório?
+
+Você pode adicionar secrets manualmente na interface do GitHub ou usar a CLI para uma experiência simplificada.
+
+### Adicionando secrets usando a CLI
+
+```bash
+gh aw secrets set COPILOT_GITHUB_TOKEN --value "SEU_PAT_COPILOT"
+```
+
+Você também pode verificar os secrets existentes com:
+
+```bash
+gh aw secrets bootstrap
+```
+
+Se você estiver trabalhando em Codespaces, use o método da interface do GitHub abaixo para adicionar secrets.
+
+### Adicionando secrets usando a interface do GitHub
+
+1. Vá para seu repositório no GitHub
+2. Clique em "Settings" → "Secrets and variables" → "Actions"
+3. Clique em "New repository secret" and add the token name and value
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcSet="/gh-aw/images/actions-secrets_dark.png" />
+  <img alt="Página de secrets do repositório mostrando tokens configurados" src="/gh-aw/images/actions-secrets_light.png" />
+</picture>
+
+## GitHub Actions secrets para motores de IA
+
+Uma referência para todos os secrets do GitHub Actions usados pelo GitHub Agentic Workflows para autenticação de motores de IA:
+
+### `COPILOT_GITHUB_TOKEN`
+
+Se usar o Copilot como seu motor de IA, você precisa de um GitHub Actions Secret definido como um GitHub Personal Access Token (PAT) para autenticar a CLI do Copilot.
+
+**Configuração**:
+
+[**Crie um PAT granular**](https://github.com/settings/personal-access-tokens/new?name=COPILOT_GITHUB_TOKEN&description=GitHub+Agentic+Workflows+-+Copilot+engine+authentication&user_copilot_requests=read) (este link preenche previamente o nome do token, a descrição e a permissão de Copilot Requests). Verifique as configurações a seguir antes de gerar:
+
+1. **O proprietário do recurso** é sua **conta de usuário**, não uma organização.
+2. Em **Permissões → Permissões da conta**, **Copilot Requests** está definido como **Read**.
+3. Clique em **Generate token** e copie o valor do token.
+4. Adicione o PAT aos secrets do seu repositório no GitHub Actions, por CLI ou pela interface do GitHub.
+
+   ```bash wrap
+   gh aw secrets set COPILOT_GITHUB_TOKEN --value "<seu-pat-github>"
+   ```
+
+**Endpoints personalizados**:
+
+Para rotear a CLI do Copilot por meio de um endpoint personalizado (por exemplo, um proxy corporativo ou instância de residência de dados GHE Cloud), defina `GITHUB_COPILOT_BASE_URL` em `engine.env`. Veja [Endpoints de API personalizados via variáveis de ambiente](/gh-aw/reference/engines/#custom-api-endpoints-via-environment-variables) para detalhes. `COPILOT_GITHUB_TOKEN` ainda deve ser um PAT granular — GitHub Apps e tokens OAuth não são suportados para este secret.
+
+**Solução de problemas**:
+
+Se o seu fluxo de trabalho falhar na etapa de inferência do Copilot mesmo com o token definido, verifique se a conta do proprietário do token tem uma licença ativa do Copilot. Veja [Problemas de acesso à licença ou inferência do Copilot](/gh-aw/troubleshooting/common-issues/#copilot-license-or-inference-access-issues) para uma etapa de diagnóstico local.
+
+---
+
+### `ANTHROPIC_API_KEY`
+
+Se usar o motor Claude da Anthropic, você precisa definir um secret do GitHub Actions `ANTHROPIC_API_KEY` como uma chave de API da Anthropic.
+
+**Configuração**:
+
+1. Crie uma chave de API em https://platform.claude.com/docs/en/get-started
+
+2. Adicione-a aos secrets do seu repositório, por CLI ou interface do GitHub:
+
+   ```bash wrap
+   gh aw secrets set ANTHROPIC_API_KEY --value "SUA_CHAVE_API_ANTHROPIC"
+   ```
+
+**Endpoints personalizados**:
+
+Para rotear o Claude por meio de um endpoint compatível com a Anthropic (por exemplo, um proxy interno ou modelo hospedado no Azure), defina `ANTHROPIC_BASE_URL` em `engine.env` e armazene quaisquer credenciais adicionais como secrets. Veja [Endpoints de API personalizados via variáveis de ambiente](/gh-aw/reference/engines/#custom-api-endpoints-via-environment-variables) para um exemplo.
+
+**`CLAUDE_CODE_OAUTH_TOKEN`**:
+
+`CLAUDE_CODE_OAUTH_TOKEN` não é suportado pelo GitHub Agentic Workflows. O único método de autenticação suportado para o motor Claude é `ANTHROPIC_API_KEY`. A autenticação OAuth baseada em provedor (como faturamento através de uma assinatura Claude Teams ou Claude Max) não é suportada. Se você definiu `CLAUDE_CODE_OAUTH_TOKEN` como um secret de repositório, ele será ignorado — configure `ANTHROPIC_API_KEY` em vez disso.
+
+Veja também [Motores de IA](/gh-aw/reference/engines/#available-coding-agents) para configuração adicional necessária ao usar Claude com GitHub MCP.
+
+---
+
+### `OPENAI_API_KEY`
+
+Se usar o motor Codex da OpenAI, você precisa definir um secret do GitHub Actions `OPENAI_API_KEY` com uma chave de API da OpenAI.
+
+**Configuração**:
+
+1. Crie uma chave de API em https://platform.openai.com/api-keys
+
+2. Adicione-a aos secrets do seu repositório, por CLI ou interface do GitHub:
+
+   ```bash wrap
+   gh aw secrets set OPENAI_API_KEY --value "SUA_CHAVE_API_OPENAI"
+   ```
+
+**Alternativa `CODEX_API_KEY`**:
+
+Tanto `CODEX_API_KEY` quanto `OPENAI_API_KEY` são aceitos. O runtime tenta `CODEX_API_KEY` primeiro. Se você já armazenou a chave em `CODEX_API_KEY`, não há necessidade de adicionar `OPENAI_API_KEY` também.
+
+**Azure OpenAI e endpoints personalizados**:
+
+Para usar Azure OpenAI ou um roteador de LLM interno em vez do endpoint padrão da OpenAI, defina `OPENAI_BASE_URL` em `engine.env` e armazene a chave correspondente como um secret do GitHub Actions referenciado em `engine.env`:
+
+```aw wrap
+engine:
+  id: codex
+  model: gpt-4o
+  env:
+    OPENAI_BASE_URL: "https://my-azure-endpoint.openai.azure.com/openai/deployments/gpt-4o"
+    OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+
+network:
+  allowed:
+    - github.com
+    - my-azure-endpoint.openai.azure.com
+```
+
+`AZURE_OPENAI_API_KEY` é um secret de repositório do GitHub Actions que você configura separadamente com `gh aw secrets set AZURE_OPENAI_API_KEY --value "<chave>"`. Não incorpore valores de chave brutos diretamente no frontmatter.
+
+Veja também [Motores de IA](/gh-aw/reference/engines/#available-coding-agents) para configuração adicional necessária ao usar Codex com GitHub MCP.
+
+---
+
+### `GEMINI_API_KEY`
+
+Se usar o motor Gemini da Google, você precisa definir um secret do GitHub Actions `GEMINI_API_KEY` com uma chave de API do Google AI Studio.
+
+**Configuração**:
+
+1. Crie uma chave de API em https://aistudio.google.com/api-keys
+
+2. Adicione-a aos secrets do seu repositório, por CLI ou interface do GitHub:
+
+   ```bash wrap
+   gh aw secrets set GEMINI_API_KEY --value "SUA_CHAVE_API_GEMINI"
+   ```
+
+Veja também [Motores de IA](/gh-aw/reference/engines/#available-coding-agents) para configuração adicional necessária ao usar Gemini com GitHub MCP.
+
+---
+
+## Solução de problemas de erros de autenticação
+
+Erros comuns de autenticação e como resolvê-los:
+
+**`403 "Resource not accessible by personal access token"` (Copilot)**
+
+O PAT está sem a permissão necessária. Use um PAT granular com **Account permissions → Copilot Requests: Read**. O proprietário do recurso deve ser sua conta pessoal, não uma organização. Veja [`COPILOT_GITHUB_TOKEN`](#copilot_github_token) para o link de configuração.
+
+**`401 Unauthorized` ou `403 Forbidden` (Claude)**
+
+O secret `ANTHROPIC_API_KEY` está faltando, expirado ou inválido. Verifique se a chave está ativa no [Anthropic Console](https://console.anthropic.com/). Re-defina o secret com `gh aw secrets set ANTHROPIC_API_KEY --value "<chave>"`. Verifique também se você não definiu `CLAUDE_CODE_OAUTH_TOKEN` acidentalmente — não é suportado.
+
+**`401 Unauthorized` ou `403 Forbidden` (Codex)**
+
+O secret `OPENAI_API_KEY` (ou `CODEX_API_KEY`) está faltando, expirado ou tem cota insuficiente. Verifique a chave em https://platform.openai.com/api-keys. Se estiver usando um endpoint personalizado, confirme se `OPENAI_BASE_URL` aponta para um host acessível e se o host está listado em `network.allowed`.
+
+**`401 Unauthorized` (Gemini)**
+
+O secret `GEMINI_API_KEY` está faltando ou inválido. Gere uma nova chave em https://aistudio.google.com/api-keys.
+
+**Erros de licença ou acesso à inferência do Copilot**
+
+Se o token estiver configurado corretamente mas o Copilot falhar na etapa de inferência, a conta do proprietário do PAT pode não ter uma assinatura ativa do Copilot. Veja [Problemas de acesso à licença ou inferência do Copilot](/gh-aw/troubleshooting/common-issues/#copilot-license-or-inference-access-issues) para um comando de diagnóstico local.
+
+**`Error loading models: 400 Bad Request` (Copilot em GHES)**
+
+O Copilot não está licenciado no nível corporativo ou o proxy da API está roteando incorretamente. Veja [Pré-requisitos do motor Copilot em GHES](/gh-aw/troubleshooting/common-issues/#copilot-engine-prerequisites-on-ghes) para a lista de verificação completa.
+
+---
+
+## Usando um GitHub App para Autenticação
+
+Para maior segurança com tokens de curta duração, você pode configurar um GitHub App em vez de usar PATs.
+
+Isso não se aplica a `COPILOT_GITHUB_TOKEN`, que atualmente deve ser um PAT. Um único GitHub App pode ser usado para todas as outras necessidades de autenticação do GitHub no GitHub Agentic Workflows, incluindo autenticação de ferramentas e safe outputs.
+
+Após criar seu aplicativo, configure-o no seu fluxo de trabalho:
+
+```yaml wrap
+permissions:
+  contents: read
+  issues: read
+
+tools:
+  github:
+    mode: remote
+    toolsets: [repos, issues, pull_requests]
+    github-app:
+      client-id: ${{ vars.APP_ID }}
+      private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      owner: "my-org"                    # Opcional: padrão é o proprietário do repositório atual
+      repositories: ["repo1", "repo2"]   # Opcional: padrão é apenas o repositório atual
+```
+
+Certifique-se de configurar variáveis e secrets do repositório:
+
+```bash wrap
+gh variable set APP_ID --body "123456"
+gh aw secrets set APP_PRIVATE_KEY --value "$(cat path/to/private-key.pem)"
+```
+
+No início do fluxo de trabalho, um token é emitido automaticamente com **permissões correspondentes ao campo `permissions:` do seu job**. O token é passado para o servidor MCP do GitHub e revogado automaticamente no final do fluxo de trabalho (mesmo em caso de falha).
+
+Você também pode usar tokens de GitHub App para operações de safe outputs:
+
+```yaml wrap
+safe-outputs:
+  github-app:
+    client-id: ${{ vars.APP_ID }}
+    private-key: ${{ secrets.APP_PRIVATE_KEY }}
+    owner: "my-org"                    # opcional: proprietário da instalação
+    repositories: ["repo1", "repo2"]   # opcional: escopo para repositórios específicos
+  create-issue:
+```
+
+Quando você configura `github-app:` para safe outputs, os tokens são emitidos com permissões específicas para as operações de safe output que estão sendo realizadas, em vez das permissões mais amplas do job. Isso proporciona maior segurança, garantindo que os tokens tenham as permissões mínimas necessárias para seu caso de uso específico.
+
+Tanto para autenticação de ferramentas quanto para safe outputs, você pode limitar o token do GitHub App a repositórios específicos para maior segurança. Isso limita o acesso do token apenas aos repositórios com os quais ele precisa interagir.
+
+- Omitir campo `repositories` - Apenas o repositório atual (padrão)
+- `repositories: ["*"]` - Acesso a toda a organização (todos os repositórios na instalação)
+- `repositories: ["repo1", "repo2"]` - Apenas repositórios específicos
+
+---
+
+## Documentação relacionada
+
+- [Motores](/gh-aw/reference/engines/) - Autenticação específica do motor
+- [Safe Outputs](/gh-aw/reference/safe-outputs/) - Configuração de token de safe output
+- [Ferramentas](/gh-aw/reference/tools/) - Autenticação e modos de ferramenta
+- [Permissões](/gh-aw/reference/permissions/) - Visão geral do modelo de permissão

@@ -1,0 +1,124 @@
+---
+title: Usando um agente personalizado para gh-aw
+description: Como criar, atualizar, importar e depurar fluxos de trabalho agentic usando nosso agente de IA.
+sidebar:
+  order: 1
+---
+
+import CopyEntireFileButton from '../../../components/CopyEntireFileButton.astro';
+
+"Agentes personalizados" são prompts adicionados que podem ser usados com Copilot, Copilot CLI e VSCode Agent Mode para fornecer comportamento especializado para tarefas específicas.
+
+Neste guia, mostramos como instalar e usar o agente personalizado `agentic-workflows` para criar, atualizar, importar e depurar fluxos de trabalho agentic em seu repositório.
+
+## Instalando os arquivos de agente Copilot para Agentic Workflows
+
+Siga estas etapas para configurar seu repositório para fluxos de trabalho agentic usando o agente personalizado `agentic-workflows`.
+
+1. **Inicie seu agente de codificação**.
+
+   - Navegue até seu repositório em https://github.com e clique na guia "Agents", ou
+   - Inicie o [VSCode Agent Mode](https://code.visualstudio.com/docs/copilot/agents/overview), ou
+   - Inicie seu agente de codificação em seu repositório
+
+2. **Instale os arquivos de agente Copilot para Agentic Workflows em seu repositório**.
+
+   ```text wrap
+   Initialize this repository for GitHub Agentic Workflows using https://github.com/github/gh-aw/blob/main/install.md
+   ```
+
+Alternativamente, execute apenas
+
+```bash
+gh aw init
+```
+
+Após a inicialização, você terá `.github/agents/agentic-workflows.agent.md`, um [arquivo de agente Copilot](/gh-aw/reference/glossary/#agent-files) que registra o comando `/agent agentic-workflows` no Copilot Chat.
+
+## Usando os arquivos de agente Copilot para Agentic Workflows
+
+Uma vez que seu repositório esteja configurado para fluxos de trabalho agentic, você pode usar o agente `agentic-workflows` do VSCode ou GitHub.com para realizar uma variedade de tarefas:
+
+### Criando novos fluxos de trabalho agentic
+
+Navegue até seu repositório em https://github.com e clique na guia "Agents", então use este prompt:
+
+```text wrap
+# Criar um novo fluxo de trabalho
+/agent agentic-workflows create a workflow that triages issues
+```
+
+O agente gerará um arquivo de fluxo de trabalho em `.github/workflows/`, escreverá o frontmatter e o prompt, configurará ferramentas e permissões e compilará para `.lock.yml`.
+
+### Atualizando fluxos de trabalho existentes
+
+Modifique ou melhore fluxos de trabalho existentes usando prompts de linguagem natural:
+
+```text wrap
+/agent agentic-workflows update the issue-triage workflow to add web-fetch tool and
+  improve the prompt for better accuracy
+```
+
+### Atualizando fluxos de trabalho agentic
+
+Mantenha os fluxos de trabalho atualizados com as versões e recursos mais recentes do `gh-aw`:
+
+```text wrap
+/agent agentic-workflows upgrade all workflows to latest version
+```
+
+### Importando fluxos de trabalho
+
+Importe fluxos de trabalho de qualquer repositório GitHub acessível:
+
+```text wrap
+/agent agentic-workflows import workflow from https://github.com/githubnext/agentics/blob/main/workflows/ci-doctor.md
+```
+
+Ao importar, você pode especificar personalizações, como motor ou ferramentas:
+
+```text wrap
+/agent agentic-workflows import issue-triage from githubnext/agentics and use claude engine
+```
+
+### Depurando fluxos de trabalho agentic
+
+Quando os fluxos de trabalho falham ou se comportam de forma inesperada, use o agente `agentic-workflows` para investigar e diagnosticar problemas:
+
+```text wrap
+/agent agentic-workflows debug why is my issue-triage workflow failing?
+```
+
+Para o diagnóstico mais rápido, passe o URL de execução completo da página do GitHub Actions:
+
+```text wrap
+/agent agentic-workflows debug https://github.com/OWNER/REPO/actions/runs/RUN_ID
+```
+
+O agente audita logs, identifica a causa raiz e sugere correções direcionadas. Ele lida com erros de permissão, ferramentas ausentes, problemas de acesso à rede e problemas de safe-output — apenas descreva o problema em linguagem natural.
+
+### Depuração autônoma (Sem Copilot)
+
+Se o seu repositório ainda não estiver configurado com o agente `agentic-workflows`, ou se você preferir usar um assistente de IA diferente, use o prompt de depuração autônomo compartilhando seu URL:
+
+```text wrap
+Debug this workflow run using https://raw.githubusercontent.com/github/gh-aw/main/debug.md
+
+The failed workflow run is at https://github.com/OWNER/REPO/actions/runs/RUN_ID
+```
+
+<CopyEntireFileButton filePath="https://raw.githubusercontent.com/github/gh-aw/main/debug.md" label="Copiar instruções de depuração" />
+
+O arquivo `debug.md` é um prompt autônomo que funciona com qualquer agente de codificação ou assistente de IA. Ele guia o agente a instalar o `gh aw`, analisar os logs de execução, identificar a causa raiz e abrir um pull request com a correção.
+
+## Criando fluxos de trabalho agentic com um chatbot de IA
+
+Se você preferir usar um chatbot de IA para criar fluxos de trabalho agentic, use as [instruções do agentic-chat](https://raw.githubusercontent.com/github/gh-aw/main/.github/aw/agentic-chat.md) com qualquer aplicação de IA conversacional. <CopyEntireFileButton filePath="https://raw.githubusercontent.com/github/gh-aw/main/.github/aw/agentic-chat.md" label="Copiar instruções do agentic-chat" />
+
+Copie as instruções para sua interface de chat de IA, descreva seu objetivo de fluxo de trabalho e o assistente gerará uma descrição de tarefa estruturada que você pode usar em seu fluxo de trabalho. Ele foca em especificações claras e acionáveis, em vez de detalhes de implementação.
+
+## Ditando fluxos de trabalho agentic
+
+Ao criar fluxos de trabalho agentic usando fala-para-texto (ditado), você pode encontrar incompatibilidades de terminologia e problemas de formatação comuns a sistemas de reconhecimento de voz. Para ajudar a corrigir esses problemas, use o prompt de [instruções de ditado](https://raw.githubusercontent.com/github/gh-aw/main/DICTATION.md) ou <CopyEntireFileButton filePath="https://raw.githubusercontent.com/github/gh-aw/main/DICTATION.md" label="Copiar instruções de ditado" />.
+
+Este prompt corrige a terminologia (ex: "ghaw" → "gh-aw"), remove palavras de preenchimento e transforma frases ditadas em descrições de tarefa claras e imperativas. Carregue-o em seu assistente de IA antes ou depois de ditar para melhorar a precisão.

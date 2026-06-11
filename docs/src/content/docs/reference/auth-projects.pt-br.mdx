@@ -1,0 +1,76 @@
+---
+title: Autenticação (Projetos)
+description: Referência para autenticar operações de leitura e escrita do GitHub Projects no gh-aw
+sidebar:
+  order: 655
+---
+
+Operações do GitHub Projects exigem autenticação adicional porque o `GITHUB_TOKEN` padrão tem escopo de repositório e não pode acessar a API GraphQL de Projetos para operações de leitura ou escrita.
+
+## Por que um token separado é necessário
+
+O `GITHUB_TOKEN` padrão fornecido a cada fluxo de trabalho (workflow) do GitHub Actions tem escopo apenas de nível de repositório. O GitHub Projects (tanto de propriedade do usuário quanto da organização) fica fora desse escopo, portanto, qualquer etapa do fluxo de trabalho que leia campos de projeto ou escreva atualizações deve fornecer um token com permissões explícitas de Projetos.
+
+Isso se aplica a:
+
+- [Conjunto de ferramentas `projects` do GitHub tools](/gh-aw/reference/github-tools/#additional-authentication-for-github-tools) — lê itens de projeto e valores de campo
+- [Safe output `update-project`](/gh-aw/reference/safe-outputs/#project-board-updates-update-project) — adiciona itens e atualiza campos
+- [Safe output `create-project`](/gh-aw/reference/safe-outputs/#project-creation-create-project) — cria novos quadros de projeto
+- [Safe output `create-project-status-update`](/gh-aw/reference/safe-outputs/#project-status-updates-create-project-status-update) — posta atualizações de status
+
+## Personal Access Tokens (PATs)
+
+### Projetos de propriedade do usuário
+
+Use um [PAT clássico](https://github.com/settings/tokens/new) com os seguintes escopos:
+
+- `project`
+- `repo` (necessário se o projeto contiver itens de repositórios privados)
+
+### Projetos de propriedade da organização
+
+Use um [PAT granular (fine-grained)](https://github.com/settings/personal-access-tokens/new?name=GH_AW_WRITE_PROJECT_TOKEN&description=GitHub+Agentic+Workflows+-+Projects+authentication&contents=read&issues=read&pull_requests=read) com estas configurações:
+
+- **Proprietário do recurso**: a organização que possui o projeto
+- **Acesso ao repositório**: os repositórios que executarão o fluxo de trabalho
+- **Permissões de repositório**: `Conteúdo: Leitura`, e opcionalmente `Issues: Leitura` / `Pull requests: Leitura`
+- **Permissões da organização**: `Projetos: Leitura e escrita`
+
+## Tokens de GitHub App
+
+Para padronização em toda a organização, um GitHub App pode ser usado em vez de PATs. O aplicativo deve ter permissão de **Projetos da organização: Leitura e escrita**.
+
+Veja [Usando um GitHub App para Autenticação](/gh-aw/reference/auth/#using-a-github-app-for-authentication) para instruções de configuração.
+
+## Layout de secret recomendado
+
+Use tokens de leitura e escrita separados para impor o princípio do privilégio mínimo:
+
+```bash wrap
+gh aw secrets set GH_AW_READ_PROJECT_TOKEN --value "<read-token>"
+gh aw secrets set GH_AW_WRITE_PROJECT_TOKEN --value "<write-token>"
+```
+
+Referencie cada token no fluxo de trabalho onde for necessário:
+
+```aw wrap
+tools:
+  github:
+    mode: remote
+    toolsets: [projects]
+    github-token: ${{ secrets.GH_AW_READ_PROJECT_TOKEN }}
+
+safe-outputs:
+  update-project:
+    project-url: https://github.com/orgs/my-org/projects/1
+    github-token: ${{ secrets.GH_AW_WRITE_PROJECT_TOKEN }}
+```
+
+O secret mágico `GH_AW_GITHUB_MCP_SERVER_TOKEN` é reconhecido pelo GitHub Agentic Workflows e não precisa ser referenciado explicitamente no seu fluxo de trabalho — se ele estiver presente no repositório, é usado automaticamente para todos os conjuntos de ferramentas do GitHub tools, incluindo `projects`.
+
+## Documentação relacionada
+
+- [Autenticação](/gh-aw/reference/auth/) — Secrets do motor de IA e configuração do GitHub App
+- [Ferramentas do GitHub](/gh-aw/reference/github-tools/) — Configuração do conjunto de ferramentas e autenticação adicional
+- [Safe Outputs](/gh-aw/reference/safe-outputs/) — Operações de escrita e configuração de token
+- [Padrão ProjectOps](/gh-aw/patterns/project-ops/) — Exemplo de ponta a ponta com quadros de projeto
