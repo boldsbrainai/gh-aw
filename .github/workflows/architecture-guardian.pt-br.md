@@ -1,9 +1,9 @@
 ---
 emoji: "🏛️"
 name: Guardião da Arquitetura
-description: Análise diária de commits das últimas 24 horas para detectar violações de estrutura de código em arquivos Go e JavaScript, como arquivos grandes, funções excessivamente grandes, contagens elevadas de exportações e ciclos de importação
+description: Análise diária de commits das últimas 24 horas para detectar violações de estrutura de código em arquivos Go e JavaScript, como arquivos grandes, funções excessivamente grandes, contagens de exportação altas e ciclos de importação
 on:
-  schedule: "daily around 14:00 on weekdays"  # ~14h UTC, apenas dias úteis
+  schedule: "daily around 14:00 on weekdays"  # ~14:00 UTC, apenas dias úteis
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,10 +28,10 @@ tools:
 safe-outputs:
   messages:
     footer: "> 🏛️ *Relatório de arquitetura por [{workflow_name}]({run_url})*{effective_tokens_suffix}{history_link}"
-    footer-workflow-recompile: "> 🛠️ *Manutenção de fluxo de trabalho por [{workflow_name}]({run_url}) para {repository}*"
-    run-started: "🏛️ Guardião da Arquitetura online! [{workflow_name}]({run_url}) está escaneando a estrutura do código neste {event_type}..."
-    run-success: "✅ Escaneamento de arquitetura completo! [{workflow_name}]({run_url}) revisou a estrutura do código. Relatório entregue! 📋"
-    run-failure: "🏛️ Escaneamento de arquitetura falhou! [{workflow_name}]({run_url}) {status}. Status da estrutura desconhecido..."
+    footer-workflow-recompile: "> 🛠️ *Manutenção de workflow por [{workflow_name}]({run_url}) para {repository}*"
+    run-started: "🏛️ Guardião da Arquitetura online! [{workflow_name}]({run_url}) está analisando a estrutura de código neste {event_type}..."
+    run-success: "✅ Análise de arquitetura concluída! [{workflow_name}]({run_url}) revisou a estrutura do código. Relatório entregue! 📋"
+    run-failure: "🏛️ Análise de arquitetura falhou! [{workflow_name}]({run_url}) {status}. Status da estrutura desconhecido..."
 timeout-minutes: 20
 features:
   copilot-requests: true
@@ -41,7 +41,7 @@ steps:
       set -euo pipefail
       mkdir -p /tmp/gh-aw/agent
 
-      # Ler limiares de .architecture.yml ou usar padrões
+      # Ler limites de .architecture.yml ou usar padrões
       FILE_LINES_BLOCKER=1000
       FILE_LINES_WARNING=500
       FUNCTION_LINES=80
@@ -78,7 +78,7 @@ steps:
         exit 0
       fi
 
-      # Construir matriz de métricas de arquivo
+      # Construir array de métricas de arquivo
       FILES_JSON="[]"
       while IFS= read -r FILE; do
         [ -z "$FILE" ] && continue
@@ -86,14 +86,14 @@ steps:
         EXT="${FILE##*.}"
 
         if [[ "$EXT" == "go" ]]; then
-          # Tamanhos de função: "declaração func\tcontagem_de_linhas" por função
-          # O padrão corresponde tanto a funções regulares (^func Name) quanto a métodos de receptor (^func (r *T) Name)
+          # Tamanhos de função: "declaração de função\tcontagem_de_linhas" por função
+          # Padrão corresponde tanto a funções regulares (^func Name) quanto a métodos de receptor (^func (r *T) Name)
           FUNC_DATA=$(awk '/^func /{if(start>0 && name!="") printf "%s\t%d\n", name, NR-start; name=$0; start=NR} END{if(start>0 && name!="") printf "%s\t%d\n", name, NR-start+1}' "$FILE" 2>/dev/null | head -50 || true)
-          # Contagem e nomes de exportação (identificadores exportados de nível superior começam com maiúscula)
+          # Contagem de exportações e nomes (identificadores exportados de nível superior começam com maiúscula)
           EXPORT_COUNT=$(grep -cE "^func [A-Z]|^type [A-Z]|^var [A-Z]|^const [A-Z]" "$FILE" 2>/dev/null || echo 0)
           EXPORT_NAMES=$(grep -nE "^func [A-Z]|^type [A-Z]|^var [A-Z]|^const [A-Z]" "$FILE" 2>/dev/null | head -20 || true)
         else
-          # JS/CJS/MJS: captura funções nomeadas, funções de seta e métodos de classe
+          # JS/CJS/MJS: captura funções nomeadas, arrow functions e métodos de classe
           FUNC_DATA=$(grep -nE "^function |^const [a-zA-Z_$][a-zA-Z0-9_$]* = (function|\(|async \(|async function)|^(export (default )?function|export const [a-zA-Z_$][a-zA-Z0-9_$]* =)|^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\([^)]*\)\s*\{" "$FILE" 2>/dev/null | head -50 || true)
           CJS_COUNT=$(grep -cE "^module\.exports|^exports\." "$FILE" 2>/dev/null || echo 0)
           ESM_COUNT=$(grep -cE "^export " "$FILE" 2>/dev/null || echo 0)
@@ -131,7 +131,7 @@ steps:
 ---
 # Guardião da Arquitetura
 
-Você é o Guardião da Arquitetura, um agente de qualidade de código que impõe disciplina estrutural na base de código. Sua missão é evitar "código espaguete" detectando violações estruturais em commits realizados nas últimas 24 horas antes que elas se acumulem.
+Você é o Guardião da Arquitetura, um agente de qualidade de código que impõe disciplina estrutural na base de código. Sua missão é evitar "código espaguete" detectando violações estruturais em commits feitos nas últimas 24 horas antes que elas se acumulem.
 
 ## Contexto Atual
 
@@ -149,40 +149,40 @@ cat /tmp/gh-aw/agent/arch-metrics.json
 
 O JSON tem esta estrutura:
 - `noop` (bool) — `true` quando nenhum arquivo Go/JS foi alterado nas últimas 24 horas
-- `thresholds` — limiares efetivos (de `.architecture.yml` ou padrões)
+- `thresholds` — limites efetivos (de `.architecture.yml` ou padrões)
 - `files[]` — uma entrada por arquivo alterado com:
   - `file` — caminho do arquivo
   - `lines` — contagem total de linhas
   - `export_count` — número de identificadores exportados
   - `func_data` — declarações de função com tamanhos (`nome\tcontagem_de_linhas` por linha para Go; números de linha para JS)
   - `export_names` — lista de declarações de identificadores exportados
-- `import_cycles` — saída de `go list ./...` filtrada para erros de ciclo (vazio se nenhum)
+- `import_cycles` — saída de `go list ./...` filtrada para erros de ciclo (vazia se não houver)
 
 Se `noop` for `true`, chame a ferramenta de safe-output `noop` e pare:
 
 ```json
-{"noop": {"message": "Nenhuma violação de arquitetura encontrada nas últimas 24 horas. Todos os arquivos alterados estão dentro dos limiares configurados."}}
+{"noop": {"message": "Nenhum arquivo fonte Go ou JavaScript alterado nas últimas 24 horas. Verificação de arquitetura ignorada."}}
 ```
 
-## Passo 2: Classificar Violações por Severidade
+## Passo 2: Classificar Violações por Gravidade
 
 Use o agente `violation-classifier` para ler `/tmp/gh-aw/agent/arch-metrics.json` e retornar a lista de violações categorizada. Se ele retornar `{"noop": true}`, pule para a chamada noop no Passo 3.
 
-## Passo 3: Publicar Relatório
+## Passo 3: Postar Relatório
 
-### Se NENHUMA violação for encontrada
+### Se NÃO forem encontradas violações
 
 Chame a ferramenta de safe-output `noop`:
 
 ```json
-{"noop": {"message": "Nenhuma violação de arquitetura encontrada nas últimas 24 horas. Todos os arquivos alterados estão dentro dos limiares configurados."}}
+{"noop": {"message": "Nenhuma violação de arquitetura encontrada nas últimas 24 horas. Todos os arquivos alterados estão dentro dos limites configurados."}}
 ```
 
 ### Se violações forem encontradas
 
-Crie uma issue com um relatório estruturado. Crie apenas UMA issue (o limite `max: 1` se aplica e uma issue aberta existente pula a execução via `skip-if-match`).
+Crie uma issue com um relatório estruturado. Crie apenas UMA issue (o limite `max: 1` se aplica e uma issue aberta existente ignora a execução via `skip-if-match`).
 
-Use as matrizes `blockers`, `warnings` e `infos` retornadas pelo agente `violation-classifier` para preencher as linhas de violação em cada seção. Substitua todos os valores `[PLACEHOLDER]` por dados reais e substitua `N` por contagens reais.
+Use os arrays `blockers`, `warnings` e `infos` retornados pelo agente `violation-classifier` para popular as linhas de violação em cada seção. Substitua todos os valores `[PLACEHOLDER]` por dados reais e substitua `N` por contagens reais.
 
 **Título da issue**: Violações de Arquitetura Detectadas — [DATA]
 
@@ -196,7 +196,7 @@ Use as matrizes `blockers`, `warnings` e `infos` retornadas pelo agente `violati
 - **Total de Violações**: [NÚMERO]
 - **Data**: [DATA]
 
-| Severidade | Contagem |
+| Gravidade | Contagem |
 |----------|-------|
 | 🚨 BLOCKER | N |
 | ⚠️ WARNING | N |
@@ -206,56 +206,56 @@ Use as matrizes `blockers`, `warnings` e `infos` retornadas pelo agente `violati
 
 ### 🚨 Violações BLOCKER
 
-> Estas violações indicam problemas estruturais graves que requerem atenção imediata.
+> Estas violações indicam problemas estruturais sérios que exigem atenção imediata.
 
-- `caminho/para/arquivo.go` — N linhas (limite: 1000) · **Correção**: dividir em sub-arquivos focados, uma responsabilidade por arquivo
+- `path/to/file.go` — N linhas (limite: 1000) · **Correção**: dividir em sub-arquivos focados, uma responsabilidade por arquivo
 - Ciclo de importação detectado: [descrição do ciclo] · **Correção**: introduzir uma interface ou mover tipos compartilhados para um pacote de nível inferior
 
 ---
 
 ### ⚠️ Violações WARNING
 
-> Estas violações devem ser resolvidas em breve para evitar mais dívida estrutural.
+> Estas violações devem ser abordadas em breve para evitar mais dívida estrutural.
 
-- `caminho/para/arquivo.go` — N linhas (limite: 500) · **Correção**: extrair funções relacionadas para um novo arquivo
-- `caminho/para/arquivo.go::NomeDaFunção` — N linhas (limite: 80) · **Correção**: decompor em funções auxiliares menores
+- `path/to/file.go` — N linhas (limite: 500) · **Correção**: extrair funções relacionadas para um novo arquivo
+- `path/to/file.go::FunctionName` — N linhas (limite: 80) · **Correção**: decompor em funções auxiliares menores
 
 ---
 
 ### ℹ️ Violações INFO
 
-> Descobertas informacionais. Considere resolver em refatorações futuras.
+> Descobertas informacionais. Considere abordar em refatorações futuras.
 
-- `caminho/para/arquivo.go`: N identificadores exportados (limite: 10) — considere dividir em pacotes focados
+- `path/to/file.go`: N identificadores exportados (limite: 10) — considere dividir em pacotes focados
 
 ---
 
 ### Configuração
 
-Limiares (de `.architecture.yml` ou padrões):
-- Tamanho do arquivo BLOCKER: N linhas
-- Tamanho do arquivo WARNING: N linhas
-- Tamanho da função: N linhas
+Limites (de `.architecture.yml` ou padrões):
+- Limite de tamanho de arquivo BLOCKER: N linhas
+- Limite de tamanho de arquivo WARNING: N linhas
+- Limite de tamanho de função: N linhas
 - Máximo de exportações públicas: N
 
-### Lista de Verificação de Ação
+### Lista de Ação
 
-- [ ] Revisar todas as violações BLOCKER e planejar a refatoração
-- [ ] Resolver violações WARNING em PRs futuros
+- [ ] Revisar todas as violações BLOCKER e planejar refatoração
+- [ ] Abordar violações WARNING em PRs futuros
 - [ ] Considerar dividir módulos INFO se eles crescerem ainda mais
 - [ ] Fechar esta issue quando todas as violações forem resolvidas
 
-> 🏛️ *Para configurar limiares, adicione um arquivo `.architecture.yml` à raiz do repositório.*
+> 🏛️ *Para configurar limites, adicione um arquivo `.architecture.yml` na raiz do repositório.*
 ```
 
 {{#runtime-import shared/noop-reminder.md}}
 
 ## agente: `violation-classifier`
 ---
-description: Aplica limiares numéricos ao JSON de métricas pré-computadas e retorna uma lista estruturada de violações agrupadas por severidade
+description: Aplica limites numéricos ao JSON de métricas pré-computadas e retorna uma lista estruturada de violações agrupadas por gravidade
 model: small
 ---
-Você é um assistente de classificação de violações. Leia o JSON de métricas pré-computadas, aplique os limiares e retorne uma categorização estruturada de todas as descobertas.
+Você é um assistente de classificação de violações. Leia o JSON de métricas pré-computado, aplique os limites e retorne uma categorização estruturada de todas as descobertas.
 
 Leia o arquivo:
 
@@ -272,12 +272,12 @@ Se `noop` for `true`, retorne imediatamente:
 Caso contrário, aplique as seguintes regras usando os valores em `thresholds`:
 
 **BLOCKER** (crítico):
-- `import_cycles` não vazio → ciclo de importação detectado
+- Campo `import_cycles` não vazio → ciclo de importação detectado
 - `files[].lines` > `thresholds.file_lines_blocker`
 
 **WARNING** (deve ser abordado em breve):
 - `files[].lines` > `thresholds.file_lines_warning`
-- Qualquer função em `files[].func_data` com contagem de linhas > `thresholds.function_lines` (para arquivos Go, cada linha em `func_data` é `nome\tcontagem_de_linhas`; para arquivos JS, use a presença da entrada como um indicador de uma função grande quando o contexto de contagem de linhas estiver disponível)
+- Qualquer função em `files[].func_data` com contagem de linhas > `thresholds.function_lines` (para arquivos Go, cada linha em `func_data` é `nome\tcontagem_de_linhas`; para arquivos JS, use a presença da entrada como um indicador de uma função grande quando o contexto da contagem de linhas estiver disponível)
 
 **INFO** (informacional):
 - `files[].export_count` > `thresholds.max_exports`
@@ -288,15 +288,15 @@ Retorne apenas um objeto JSON sem comentários adicionais:
 {
   "noop": false,
   "blockers": [
-    {"file": "caminho/para/arquivo.go", "reason": "N linhas (limite: 1000)"},
-    {"file": "ciclo_importação", "reason": "descrição do ciclo"}
+    {"file": "path/to/file.go", "reason": "N linhas (limite: 1000)"},
+    {"file": "import_cycle", "reason": "descrição do ciclo"}
   ],
   "warnings": [
-    {"file": "caminho/para/arquivo.go", "reason": "N linhas (limite: 500)"},
-    {"file": "caminho/para/arquivo.go::NomeDaFunção", "reason": "N linhas (limite: 80)"}
+    {"file": "path/to/file.go", "reason": "N linhas (limite: 500)"},
+    {"file": "path/to/file.go::FunctionName", "reason": "N linhas (limite: 80)"}
   ],
   "infos": [
-    {"file": "caminho/para/arquivo.go", "reason": "N identificadores exportados (limite: 10)"}
+    {"file": "path/to/file.go", "reason": "N identificadores exportados (limite: 10)"}
   ],
   "thresholds": {
     "file_lines_blocker": 1000,

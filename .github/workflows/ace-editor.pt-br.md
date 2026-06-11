@@ -1,6 +1,6 @@
 ---
 emoji: "✏️"
-name: Sessão do Editor ACE
+name: Sessão de Editor ACE
 description: Gera um link de sessão do editor ACE quando invocado com o comando /ace em comentários de pull request
 on:
   slash_command:
@@ -35,7 +35,7 @@ jobs:
               owner,
               repo,
               issue_number: prNumber,
-              body: `👋 Olá @${actor}! Aqui está o seu link da sessão do editor ACE para este pull request:\n\n🔗 **${aceUrl}**\n\nCopie e cole este link no Slack para convidar seus colegas de equipe para a sessão! 🚀`,
+              body: `👋 Olá @${actor}! Aqui está o seu link de sessão do editor ACE para este pull request:\n\n🔗 **${aceUrl}**\n\nCopie e cole este link no Slack para convidar seus colegas de equipe para a sessão! 🚀`,
             });
 imports:
   - shared/otlp.md
@@ -44,4 +44,4 @@ tools:
 
 ---
 
-Ação clássica que gera um link de sessão do editor ACE no comando slash de comentário de pull request.
+Ação clássica que gera um link de sessão do editor ACE através de um comando slash em comentário de pull request.

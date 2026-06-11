@@ -13,6 +13,7 @@ export VERSION=0.0.369 && curl -fsSL https://gh.io/copilot-install | sudo bash
 ```
 
 **Riscos de Segurança:**
+
 - Se o `gh.io` ou a URL do script instalador for comprometida, código malicioso pode ser injetado.
 - O script é executado com privilégios de `sudo`, permitindo acesso em nível de sistema.
 - Não há como detectar downloads corrompidos ou adulterados.
@@ -21,6 +22,7 @@ export VERSION=0.0.369 && curl -fsSL https://gh.io/copilot-install | sudo bash
 ## Solução
 
 A nova implementação:
+
 1. Baixa o binário do Copilot CLI diretamente dos releases do GitHub.
 2. Baixa o arquivo de checksums do mesmo release.
 3. Verifica o checksum SHA256 antes da instalação.
@@ -82,6 +84,7 @@ curl -fsSL -o "/tmp/copilot-checksums.txt" "${CHECKSUMS_URL}" || {
 ## Localização do Código
 
 A implementação está em:
+
 - **Função**: `GenerateCopilotInstallerSteps` em `pkg/workflow/copilot_engine.go`
 - **Testes**: `pkg/workflow/copilot_installer_test.go`
 
@@ -195,12 +198,14 @@ Exemplo de um fluxo de trabalho compilado:
 ## Testes
 
 Os testes unitários verificam:
+
 - Tratamento de versão (com e sem o prefixo 'v').
 - Geração de código de verificação de checksum.
 - Tratamento de fallback para checksums ausentes.
 - Integração com a compilação de fluxos de trabalho.
 
 Executar testes:
+
 ```bash
 make test-unit
 # ou especificamente:

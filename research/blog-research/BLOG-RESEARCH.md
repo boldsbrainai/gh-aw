@@ -78,6 +78,7 @@ Comprehensive research findings for workflows featured in the "Meet the Workflow
 **Attribution includes causal chains**: When Agent A creates an issue → Agent B creates PR fixing it → PR is attributed to Agent A ✅
 
 **Example Causal Chains**:
+
 - **Discussion Task Miner**: Discussion #13934 → Issue #14084 → PR #14129 (perfect chain)
 - **Planning Assistant**: Discussion #7631 → Issue #8058 → PR #8110 (perfect chain)
 - **Terminal Stylist** (multi-agent): Discussion #9804 → Issue #9829 (mined by Discussion Task Miner) → PR #9928 (MERGED) — 31 discussions → 25 issues → 16 merged PRs total
@@ -213,16 +214,19 @@ In our extended use of Duplicate Code Detector, the agent raised **76 merged PRs
 **Causal Chain**: 99 issues → 142 PRs (112 merged)
 
 **Example Causal Chain** (Issue → PR):
+
 - **Issue #12291**: [refactor] Semantic Function Clustering Analysis - Code Organization Opportunities (created by Semantic Function Refactoring)
 - **PR #12363**: Refactor: Split permissions.go into focused modules (928→133 lines) (MERGED) — fixes issue #12291
 
 **Example Causal Chain PRs** (Recent, Merged):
+
 - [#12363: Refactor: Split permissions.go into focused modules (928→133 lines)](https://github.com/github/gh-aw/pull/12363)
 - [#12074: Consolidate shell escaping utilities into shell.go](https://github.com/github/gh-aw/pull/12074)
 - [#11778: [refactor] Phase 1: Consolidate validation helpers, centralize expression patterns](https://github.com/github/gh-aw/pull/11778)
 - [#11584: Refactor: eliminate duplicate secret extraction and consolidate time parsing](https://github.com/github/gh-aw/pull/11584)
 
 **Example Issues** (Attribution-Verified, created by "Semantic Function Refactoring"):
+
 - #14075: [refactor] Semantic Function Clustering Analysis - Refactoring Opportunities (OPEN)
 - #13870: [refactor] Semantic Function Clustering Analysis - Excellent Code Organization (CLOSED)
 - #13683: [refactor] Semantic Function Clustering Analysis - Excellent Code Organization (CLOSED)
@@ -247,6 +251,7 @@ Semantic Function Refactor ("Semantic Function Refactoring") has driven **112 me
 **Causal Chain**: 37 issues → 33 PRs (26 merged) + 1 direct PR (merged)
 
 **Example Causal Chain** (Issue → PR):
+
 - **Issue #12535**: [file-diet] Refactor add_interactive.go into focused modules (1025 lines) (created by Daily File Diet)
 - **PR #12545**: Refactor add_interactive.go into 6 domain-focused modules (MERGED) — fixes issue #12535
 
@@ -352,6 +357,7 @@ Terminal Stylist demonstrates multi-agent collaboration at its best. The workflo
 **Causal Chain**: 67 discussions → 31 issues (29 Plan Command, 1 DeepReport, 1 Go Fan direct) → 58 merged / 74 total PRs (78%)
 
 **Verified Causal Chain Examples**:
+
 1. **Discussion [#5094](https://github.com/github/gh-aw/discussions/5094)** ("Go Module Review: briandowns/spinner", Nov 29) → **Issue [#5100](https://github.com/github/gh-aw/issues/5100)** ("[plan] Improve spinner implementation based on go-fan analysis", Plan Command) → **4 PRs all MERGED**: [#5119](https://github.com/github/gh-aw/pull/5119) (Remove go-isatty dependency), [#5120](https://github.com/github/gh-aw/pull/5120) (Add completion messages), [#5122](https://github.com/github/gh-aw/pull/5122) (Configure spinner stderr), [#5123](https://github.com/github/gh-aw/pull/5123) (Add dynamic progress updates)
 
 2. **Discussion [#7710](https://github.com/github/gh-aw/discussions/7710)** ("Go Module Review: modelcontextprotocol/go-sdk", Dec 26) → **Issue [#7711](https://github.com/github/gh-aw/issues/7711)** ("[plan] Upgrade MCP Go SDK to v1.2.0 and implement improvements", Plan Command) → **5 PRs all MERGED**: [#7720](https://github.com/github/gh-aw/pull/7720) (Upgrade MCP Go SDK to v1.2.0), [#7747](https://github.com/github/gh-aw/pull/7747) (Add elicitation defaults), [#7769](https://github.com/github/gh-aw/pull/7769) (Implement standardized MCP error codes), [#7774](https://github.com/github/gh-aw/pull/7774) (Add icons to MCP server tools), [#7801](https://github.com/github/gh-aw/pull/7801) (Document v1.2.0 MCP capability API)
@@ -382,6 +388,7 @@ Go Fan reviews Go module dependencies and produces detailed discussions analyzin
 - Discussion #12725 → Issue #12824 (Discussion Task Miner) — cross-agent chain
 
 **Merged PRs** (19 total, all attribution-verified via causal chain):
+
 - [#4158](https://github.com/github/gh-aw/pull/4158), [#4159](https://github.com/github/gh-aw/pull/4159), [#4160](https://github.com/github/gh-aw/pull/4160), [#4161](https://github.com/github/gh-aw/pull/4161)
 - [#6056](https://github.com/github/gh-aw/pull/6056), [#6116](https://github.com/github/gh-aw/pull/6116), [#6156](https://github.com/github/gh-aw/pull/6156), [#6157](https://github.com/github/gh-aw/pull/6157)
 - [#6869](https://github.com/github/gh-aw/pull/6869), [#6870](https://github.com/github/gh-aw/pull/6870), [#6871](https://github.com/github/gh-aw/pull/6871), [#6896](https://github.com/github/gh-aw/pull/6896)
@@ -549,11 +556,13 @@ Slide Deck Maintainer is a recent addition — so far it has created **5 PRs (2 
 ---
 
 ### Multi-Device Docs Tester ✅
+
 **Blog Post**: `2026-01-13-meet-the-workflows-documentation.md`
 
 **Statistics (Attribution-Verified)**: **2 merged / 2 total PRs (100% merge rate)** ⭐ *Perfect merge rate*
 
 **Example PRs** (Recent, Merged, Attribution-Verified):
+
 - [#7158: Add --network host to Playwright Docker containers for localhost access](https://github.com/github/gh-aw/pull/7158)
 - [#6453: Add --allowed-origins flag for Playwright browser navigation to localhost](https://github.com/github/gh-aw/pull/6453)
 
@@ -657,7 +666,9 @@ Mergefest is an **orchestrator workflow** that automatically merges main into PR
 ---
 
 ### Sub Issue Closer ✅ (Orchestrator Workflow)
-**Blog Post**: `2026-01-13-meet-the-workflows-issue-management.md`
+
+**Blog Post**:
+`2026-01-13-meet-the-workflows-issue-management.md`
 
 **Statistics**: **0 PRs — this is an orchestrator workflow** ✅
 
@@ -666,6 +677,7 @@ Sub Issue Closer closes completed sub-issues — it doesn't create PRs.
 **Pattern**: Closes completed sub-issues automatically — issue lifecycle management
 
 **Blog Addition Suggestion**:
+
 ```markdown
 Sub Issue Closer automatically closes completed sub-issues when their parent issue is resolved, keeping the issue tracker clean.
 ```

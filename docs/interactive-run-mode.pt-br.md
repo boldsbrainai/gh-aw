@@ -15,6 +15,7 @@ gh aw run
 ## Funcionalidades
 
 ### 1. Seleção de Fluxo de Trabalho (Workflow)
+
 - Exibe uma lista filtrável de fluxos de trabalho que suportam `workflow_dispatch`.
 - Mostra descrições dos fluxos de trabalho com contagem de entradas (obrigatórias/opcionais).
 - Usa as teclas de seta para navegação e Enter para selecionar.
@@ -28,17 +29,21 @@ Após selecionar um fluxo de trabalho, exibe:
 - Descrições das entradas.
 
 ### 3. Coleta de Entrada
+
 - Solicita cada entrada do fluxo de trabalho.
 - Mostra descrições e valores padrão.
 - Valida entradas obrigatórias.
 - Permite valores vazios para entradas opcionais com valores padrão.
 
 ### 4. Confirmação de Execução
+
 - Confirma a execução do fluxo de trabalho com um resumo das entradas.
 - Opções para prosseguir ou cancelar.
 
 ### 5. Exibição do Comando
+
 Após a execução, mostra o comando CLI equivalente:
+
 ```bash
 gh aw run nome-do-workflow -F input1=valor1 -F input2=valor2
 ```
@@ -70,6 +75,7 @@ CI=true gh aw run  # Retorna erro: o modo interativo não pode ser usado em CI
 ## Exemplos
 
 ### Execução Interativa Básica
+
 ```bash
 $ gh aw run
 # Exibe a lista de fluxos de trabalho
@@ -79,6 +85,7 @@ $ gh aw run
 ```
 
 ### Execução Interativa com Substituição de Repositório
+
 ```bash
 $ gh aw run --repo proprietario/repositorio
 # Mesmo fluxo interativo, mas direcionado a um repositório diferente
@@ -121,13 +128,16 @@ Se você vir "no runnable workflows found":
 3. Verifique se os fluxos de trabalho têm a extensão `.md`.
 
 ### Erros de Validação de Entrada
+
 Se a validação de entrada falhar:
 - Verifique se todas as entradas obrigatórias foram fornecidas.
 - Verifique se os nomes das entradas correspondem às definições do fluxo de trabalho.
 - Use o comando exibido para ver o formato esperado.
 
 ### Modo Interativo Não Inicia
+
 Se o modo interativo não ativar:
+
 - Certifique-se de que nenhum argumento de fluxo de trabalho foi fornecido.
 - Verifique se você não está em um ambiente de CI.
 - Verifique se o binário está atualizado.

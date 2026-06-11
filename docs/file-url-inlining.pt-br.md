@@ -11,6 +11,7 @@ A sintaxe de importação em tempo de execução permite incluir conteúdo de ar
 ## Segurança
 
 **Validação de Caminho**: Todos os caminhos de arquivo são validados para garantir que permaneçam dentro da pasta `.github`:
+
 - Os caminhos são normalizados para resolver componentes `.` e `..`.
 - Após a normalização, o caminho resolvido deve estar dentro da pasta `.github`.
 - Tentativas de sair da pasta (ex: `../../../etc/passwd`) são rejeitadas com um erro de segurança.
@@ -21,11 +22,13 @@ A sintaxe de importação em tempo de execução permite incluir conteúdo de ar
 ### Importação de Arquivo
 
 **Arquivo Completo**: `{{#runtime-import caminho_do_arquivo}}`
+
 - Inclui todo o conteúdo do arquivo a partir da pasta `.github`.
 - O caminho pode ser especificado com ou sem o prefixo `.github/`.
 - Exemplo: `{{#runtime-import docs/README.md}}` ou `{{#runtime-import .github/docs/README.md}}`
 
 **Intervalo de Linhas**: `{{#runtime-import caminho_do_arquivo:inicio-fim}}`
+
 - Inclui linhas específicas do arquivo (indexação baseada em 1, inclusiva).
 - O início e o fim são números de linha.
 - Exemplo: `{{#runtime-import src/main.go:10-20}}` inclui as linhas 10 a 20.
@@ -33,6 +36,7 @@ A sintaxe de importação em tempo de execução permite incluir conteúdo de ar
 ### Importação de URL
 
 **URLs HTTP/HTTPS**: `{{#runtime-import https://exemplo.com/arquivo.txt}}`
+
 - Busca o conteúdo da URL.
 - O conteúdo é armazenado em cache por 1 hora para reduzir as solicitações de rede.
 - O cache é armazenado em `/tmp/gh-aw/url-cache/`.
@@ -43,6 +47,7 @@ A sintaxe de importação em tempo de execução permite incluir conteúdo de ar
 ### Sanitização de Conteúdo
 
 Todo o conteúdo importado é automaticamente sanitizado:
+
 - **Remoção de Front Matter**: O front matter YAML (entre os delimitadores `---`) é removido.
 - **Remoção de Comentários XML**: Comentários HTML/XML (`<!-- ... -->`) são removidos.
 - **Detecção de Macros do GitHub Actions**: Conteúdo que contenha expressões `${{ ... }}` é rejeitado com um erro.
@@ -142,18 +147,21 @@ A sintaxe `@` é puro açúcar sintático — ela simplesmente é convertida par
 ## Tratamento de Erros
 
 ### Arquivo Não Encontrado
+
 Se um arquivo referenciado não existir, o fluxo de trabalho falhará com um erro:
 ```
 Failed to process runtime import for ./missing.txt: Runtime import file not found: ./missing.txt
 ```
 
 ### Intervalo de Linhas Inválido
+
 Se os números das linhas estiverem fora dos limites, o fluxo de trabalho falhará:
 ```
 Invalid start line 100 for file ./src/main.go (total lines: 50)
 ```
 
 ### Formato de Caminho Inválido
+
 Se um caminho de arquivo não começar com `./` ou `../`, ele será ignorado:
 ```
 @docs/file.md  # NÃO processado - permanece como texto simples
@@ -161,18 +169,21 @@ Se um caminho de arquivo não começar com `./` ou `../`, ele será ignorado:
 ```
 
 ### Violação de Segurança de Caminho
+
 Se um caminho tentar sair da raiz do git, o fluxo de trabalho falhará:
 ```
 Security: Path ../../../etc/passwd resolves outside git root (/workspace)
 ```
 
 ### Falha na Busca de URL
+
 Se uma URL não puder ser buscada, o fluxo de trabalho falhará:
 ```
 Failed to process runtime import for https://example.com/file.txt: Failed to fetch URL https://example.com/file.txt: HTTP 404
 ```
 
 ### Macros do GitHub Actions
+
 Se o conteúdo incluído contiver expressões do GitHub Actions, o fluxo de trabalho falhará:
 ```
 File ./docs/template.md contains GitHub Actions macros (${{ ... }}) which are not allowed in runtime imports
@@ -203,6 +214,7 @@ A sintaxe `@` é puro açúcar sintático que se converte em macros `{{#runtime-
 ## Testes
 
 A funcionalidade inclui uma cobertura de testes abrangente:
+
 - Mais de 75 testes unitários em `runtime_import.test.cjs`.
 - Testes para inclusão de arquivo completo com prefixos `./` e `../`.
 - Testes para extração de intervalo de linhas.

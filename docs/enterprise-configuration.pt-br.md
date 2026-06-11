@@ -53,6 +53,7 @@ network:
 ```
 
 **Domínios necessários na lista de permissões (allowlist) de rede:**
+
 - `acme.ghe.com` - O domínio do seu locatário GHEC (operações git, interface web)
 - `api.acme.ghe.com` - Seu endpoint de API do Copilot específico do locatário
 - `raw.githubusercontent.com` - Acesso a conteúdo bruto (se estiver usando o servidor MCP do GitHub)
@@ -77,6 +78,7 @@ network:
 ```
 
 **Domínios necessários na lista de permissões (allowlist) de rede:**
+
 - `github.company.com` - Sua instância GHES (operações git, interface web)
 - `api.enterprise.githubcopilot.com` - Endpoint de API do Copilot corporativo (usado para todas as instâncias GHES)
 
@@ -184,12 +186,14 @@ gh aw compile seu-workflow.md
 ```
 
 Procure por:
+
 - Flag `--copilot-api-target` no comando AWF (se estiver usando o engine Copilot)
 - Hostname do endpoint de API correto no valor da flag
 
 ### 2. Verifique as Execuções do Fluxo de Trabalho
 
 Nas execuções de workflow do GitHub Actions:
+
 1. Vá para o job do agente.
 2. Verifique a etapa "Run Copilot Agent" (ou equivalente).
 3. Verifique se o comando AWF inclui o alvo de API correto.
@@ -202,6 +206,7 @@ Nas execuções de workflow do GitHub Actions:
 **Problema:** O tráfego está indo para o endpoint de API errado.
 
 **Soluções:**
+
 1. Verifique se `engine.api-target` está definido corretamente no frontmatter do seu workflow.
 2. Verifique se o domínio está na sua lista `network.allowed`.
 3. Revise os logs do AWF na execução do workflow para mensagens de configuração de endpoint.
@@ -212,6 +217,7 @@ Nas execuções de workflow do GitHub Actions:
 **Problema:** As solicitações são bloqueadas com erros de rede.
 
 **Solução:** Adicione o domínio ausente à sua lista `network.allowed`:
+
 - Para GHEC: `[acme.ghe.com, api.acme.ghe.com]`
 - Para GHES: `[github.company.com, api.enterprise.githubcopilot.com]`
 - Para IA personalizada: `[api.custom.ai-provider.com]`
@@ -221,6 +227,7 @@ Nas execuções de workflow do GitHub Actions:
 **Problema:** O servidor MCP do GitHub falha ao conectar-se à sua instância corporativa.
 
 **Soluções:**
+
 1. Certifique-se de que seu domínio GHEC/GHES está em `network.allowed`.
 2. Verifique se o token do GitHub possui escopos apropriados para o seu locatário corporativo.
 3. Use `mode: remote` para o servidor MCP do GitHub quando estiver no GHEC/GHES.

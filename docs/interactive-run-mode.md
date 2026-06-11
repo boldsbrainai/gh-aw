@@ -15,6 +15,7 @@ gh aw run
 ## Features
 
 ### 1. Workflow Selection
+
 - Displays a filterable list of workflows that support `workflow_dispatch`
 - Shows workflow descriptions with input counts (required/optional)
 - Uses arrow keys for navigation, Enter to select
