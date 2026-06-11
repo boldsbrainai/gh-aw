@@ -22,7 +22,9 @@ gh aw run
 - Pressione `/` para filtrar fluxos de trabalho por nome.
 
 ### 2. Informações do Fluxo de Trabalho
+
 Após selecionar um fluxo de trabalho, exibe:
+
 - Nome do fluxo de trabalho.
 - Lista de entradas (obrigatórias e opcionais).
 - Valores padrão para entradas opcionais.
@@ -53,6 +55,7 @@ Isso permite que você execute novamente o fluxo de trabalho facilmente com as m
 ## Flags Suportadas
 
 Todas as flags padrão do comando `run` funcionam no modo interativo:
+
 - `--repo proprietario/repositorio` - Alvo para um repositório diferente.
 - `--ref branch` - Executar em uma branch específica.
 - `--engine copilot` - Substituir o engine de IA.
@@ -61,6 +64,7 @@ Todas as flags padrão do comando `run` funcionam no modo interativo:
 ## Limitações
 
 As seguintes flags NÃO são suportadas no modo interativo:
+
 - `--repeat` - Use o comando exibido para execuções repetidas.
 - `--enable-if-needed` - Habilite os fluxos de trabalho manualmente primeiro.
 - `-F` / `--raw-field` - As entradas são coletadas interativamente.
@@ -68,6 +72,7 @@ As seguintes flags NÃO são suportadas no modo interativo:
 ## Detecção de CI
 
 O modo interativo é desativado automaticamente em ambientes de CI:
+
 ```bash
 CI=true gh aw run  # Retorna erro: o modo interativo não pode ser usado em CI
 ```
@@ -92,7 +97,9 @@ $ gh aw run --repo proprietario/repositorio
 ```
 
 ### Usando o Comando Exibido
+
 Após a conclusão da execução interativa:
+
 ```bash
 ✓ Fluxo de trabalho disparado com sucesso!
 
@@ -105,10 +112,13 @@ Copie e cole este comando para execuções futuras.
 ## Detalhes Técnicos
 
 ### Filtragem de Fluxos de Trabalho
+
 Apenas fluxos de trabalho com gatilhos `workflow_dispatch` ou `schedule` são exibidos. Isso é determinado verificando a seção `on:` no frontmatter do fluxo de trabalho.
 
 ### Tipos de Entrada
+
 Suporta todos os tipos de entrada de `workflow_dispatch`:
+
 - `string` - Entrada de texto.
 - `boolean` - Use o tipo string com os valores 'true'/'false' (requisito do GitHub Actions).
 - `choice` - Ainda não implementado na interface do usuário (use via CLI).
@@ -117,12 +127,15 @@ Suporta todos os tipos de entrada de `workflow_dispatch`:
 **Nota**: As entradas de `workflow_dispatch` do GitHub Actions devem usar padrões de string, mesmo para tipos booleanos. Use `type: string` com `default: 'false'` em vez de `type: boolean` com `default: false`.
 
 ### Detecção de TTY
+
 Recorre a uma lista de texto numerada em ambientes sem TTY (ex: saída via pipe).
 
 ## Solução de Problemas (Troubleshooting)
 
 ### Nenhum Fluxo de Trabalho Encontrado
+
 Se você vir "no runnable workflows found":
+
 1. Certifique-se de que os fluxos de trabalho tenham `workflow_dispatch:` na seção `on:`.
 2. Verifique se os fluxos de trabalho estão no diretório `.github/workflows/`.
 3. Verifique se os fluxos de trabalho têm a extensão `.md`.
@@ -130,6 +143,7 @@ Se você vir "no runnable workflows found":
 ### Erros de Validação de Entrada
 
 Se a validação de entrada falhar:
+
 - Verifique se todas as entradas obrigatórias foram fornecidas.
 - Verifique se os nomes das entradas correspondem às definições do fluxo de trabalho.
 - Use o comando exibido para ver o formato esperado.
